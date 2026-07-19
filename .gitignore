@@ -17,6 +17,7 @@ wheels/
 **/.flutter-plugins-dependencies
 **/generated_plugin_registrant.*
 **/GeneratedPluginRegistrant.*
+**/generated_plugins.cmake
 .pub-cache/
 .pub/
 *.iml
