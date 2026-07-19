@@ -10,6 +10,7 @@ import 'screens/parking_screen.dart';
 import 'screens/photo_gallery_screen.dart';
 import 'screens/program_signup_screen.dart';
 import 'screens/rsvp_screen.dart';
+import 'screens/location_screen.dart';
 import 'screens/seating_plan_screen.dart';
 import 'services/auth_service.dart';
 
@@ -23,12 +24,13 @@ GoRouter buildRouter() {
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/rsvp', builder: (context, state) => const RsvpScreen()),
-      GoRoute(path: '/seating', builder: (context, state) => const SeatingPlanScreen()),
       GoRoute(path: '/cakes', builder: (context, state) => const CakeScreen()),
       GoRoute(path: '/photos', builder: (context, state) => const PhotoGalleryScreen()),
       GoRoute(path: '/program', builder: (context, state) => const ProgramSignupScreen()),
       GoRoute(path: '/parking', builder: (context, state) => const ParkingScreen()),
       GoRoute(path: '/admin', builder: (context, state) => const AdminLoginScreen()),
+      GoRoute(path: '/seating', builder: (context, state) => const SeatingPlanScreen()),
+      GoRoute(path: '/location', builder: (context, state) => const LocationScreen()),
       GoRoute(
         path: '/admin/dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
