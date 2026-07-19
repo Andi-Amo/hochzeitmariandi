@@ -83,7 +83,8 @@ class _LockedCountdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remaining = unlockTime.difference(now);
-    final hours = remaining.inHours;
+    final days = remaining.inDays;
+    final hours = remaining.inHours.remainder(24);
     final minutes = remaining.inMinutes.remainder(60);
     final seconds = remaining.inSeconds.remainder(60);
 
@@ -101,7 +102,7 @@ class _LockedCountdown extends StatelessWidget {
           const SizedBox(height: 8),
           if (!remaining.isNegative)
             Text(
-              'Noch $hours Std. $minutes Min. $seconds Sek.',
+              'Noch $days Tage, $hours Std. $minutes Min. $seconds Sek.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
         ],
