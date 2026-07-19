@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// Storage rules for uploaded wedding photos.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /photos/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+      allow delete: if request.auth != null &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+  }
+}

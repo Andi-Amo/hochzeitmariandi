@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// Security rules for the wedding app.
+//
+// Auth model:
+//  - Every visitor (including guests who never explicitly "log in") gets an
+//    anonymous Firebase Auth session on app startup (see AuthService.ensureSignedIn).
+//  - The couple signs in with email/password in the admin area, which is
+//    treated as "admin" below (any non-anonymous account).
+//
+// This keeps the guest-facing app login-free while still requiring
+// `request.auth != null` for all reads/writes, and restricts destructive or
+// sensitive operations (deleting guests, editing seating, curating photos)
+// to the admin account(s).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    match /guests/{guestId} {
+      allow read: if isSignedIn();
+      // Guests may only self-service their own RSVP fields; everything else
+      // (table/seat assignment, cake-suspect flag, ...) is admin-only.
+      allow update: if isSignedIn() &&
+        (isAdmin() ||
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['rsvpStatus', 'plusOnes', 'dietaryNotes']));
+      allow create, delete: if isAdmin();
+    }
+
+    match /cakes/{cakeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /programItems/{itemId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /photos/{photoId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      // Hiding/deleting photos (curation) is admin-only.
+      allow update, delete: if isAdmin();
+    }
+  }
+}
