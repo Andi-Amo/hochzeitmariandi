@@ -30,7 +30,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         (isAdmin() ||
           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['rsvpStatus', 'plusOnes', 'dietaryNotes']));
+            .hasOnly(['rsvpStatus', 'plusOnes', 'dietaryNotes', 'isChild', 'childAge']));
       allow create, delete: if isAdmin();
     }
 

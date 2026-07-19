@@ -12,6 +12,14 @@ class Guest {
   /// reminder popup in the cake section.
   final bool isUsualCakeSuspect;
 
+  /// Whether this guest is a child (vs. adult). Defaults to `false` (adult)
+  /// unless set otherwise in the guest list; guests can also adjust this
+  /// themselves (with [childAge]) when submitting their RSVP.
+  final bool isChild;
+
+  /// Age of the child, only meaningful when [isChild] is `true`.
+  final int? childAge;
+
   final String rsvpStatus; // 'pending' | 'attending' | 'declined'
   final int plusOnes;
   final String? dietaryNotes;
@@ -23,6 +31,8 @@ class Guest {
     this.tableId,
     this.seat,
     this.isUsualCakeSuspect = false,
+    this.isChild = false,
+    this.childAge,
     this.rsvpStatus = 'pending',
     this.plusOnes = 0,
     this.dietaryNotes,
@@ -43,6 +53,8 @@ class Guest {
       tableId: data['tableId'] as String?,
       seat: data['seat'] as String?,
       isUsualCakeSuspect: data['isUsualCakeSuspect'] as bool? ?? false,
+      isChild: data['isChild'] as bool? ?? false,
+      childAge: (data['childAge'] as num?)?.toInt(),
       rsvpStatus: data['rsvpStatus'] as String? ?? 'pending',
       plusOnes: (data['plusOnes'] as num?)?.toInt() ?? 0,
       dietaryNotes: data['dietaryNotes'] as String?,
@@ -56,6 +68,8 @@ class Guest {
       'tableId': tableId,
       'seat': seat,
       'isUsualCakeSuspect': isUsualCakeSuspect,
+      'isChild': isChild,
+      'childAge': childAge,
       'rsvpStatus': rsvpStatus,
       'plusOnes': plusOnes,
       'dietaryNotes': dietaryNotes,
@@ -66,6 +80,8 @@ class Guest {
     String? tableId,
     String? seat,
     bool? isUsualCakeSuspect,
+    bool? isChild,
+    int? childAge,
     String? rsvpStatus,
     int? plusOnes,
     String? dietaryNotes,
@@ -77,6 +93,8 @@ class Guest {
       tableId: tableId ?? this.tableId,
       seat: seat ?? this.seat,
       isUsualCakeSuspect: isUsualCakeSuspect ?? this.isUsualCakeSuspect,
+      isChild: isChild ?? this.isChild,
+      childAge: childAge ?? this.childAge,
       rsvpStatus: rsvpStatus ?? this.rsvpStatus,
       plusOnes: plusOnes ?? this.plusOnes,
       dietaryNotes: dietaryNotes ?? this.dietaryNotes,

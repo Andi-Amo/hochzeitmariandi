@@ -41,11 +41,15 @@ class GuestRepository {
     required String rsvpStatus,
     required int plusOnes,
     String? dietaryNotes,
+    bool isChild = false,
+    int? childAge,
   }) async {
     await _collection.doc(guestId).update({
       'rsvpStatus': rsvpStatus,
       'plusOnes': plusOnes,
       'dietaryNotes': dietaryNotes,
+      'isChild': isChild,
+      'childAge': isChild ? childAge : null,
     });
   }
 

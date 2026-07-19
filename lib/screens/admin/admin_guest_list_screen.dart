@@ -54,7 +54,8 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                     : const Icon(Icons.person_outline),
                 title: Text(g.fullName),
                 subtitle: Text(
-                  'Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus}',
+                  'Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
+                  '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.edit),
@@ -73,7 +74,11 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
     final lastNameController = TextEditingController(text: existing?.lastName ?? '');
     final tableController = TextEditingController(text: existing?.tableId ?? '');
     final seatController = TextEditingController(text: existing?.seat ?? '');
+    final childAgeController = TextEditingController(
+      text: existing?.childAge != null ? '${existing!.childAge}' : '',
+    );
     bool isCakeSuspect = existing?.isUsualCakeSuspect ?? false;
+    bool isChild = existing?.isChild ?? false;
 
     await showDialog(
       context: context,
@@ -105,6 +110,17 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                   value: isCakeSuspect,
                   onChanged: (v) => setDialogState(() => isCakeSuspect = v ?? false),
                 ),
+                CheckboxListTile(
+                  title: const Text('Kind (statt Erwachsener)'),
+                  value: isChild,
+                  onChanged: (v) => setDialogState(() => isChild = v ?? false),
+                ),
+                if (isChild)
+                  TextField(
+                    controller: childAgeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Alter des Kindes'),
+                  ),
               ],
             ),
           ),
@@ -130,6 +146,8 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                   tableId: tableController.text.trim().isEmpty ? null : tableController.text.trim(),
                   seat: seatController.text.trim().isEmpty ? null : seatController.text.trim(),
                   isUsualCakeSuspect: isCakeSuspect,
+                  isChild: isChild,
+                  childAge: isChild ? int.tryParse(childAgeController.text.trim()) : null,
                   rsvpStatus: existing?.rsvpStatus ?? 'pending',
                   plusOnes: existing?.plusOnes ?? 0,
                   dietaryNotes: existing?.dietaryNotes,
@@ -151,8 +169,10 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
 
   /// Bulk-imports guests from pasted CSV text. Expected columns (header
   /// row required, order doesn't matter):
-  ///   firstName,lastName,tableId,seat,isUsualCakeSuspect
-  /// `isUsualCakeSuspect` accepts true/false/1/0/ja/nein (case-insensitive).
+  ///   firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge
+  /// `isUsualCakeSuspect`/`isChild` accept true/false/1/0/ja/nein
+  /// (case-insensitive). Guests default to adult (isChild=false) if the
+  /// column is omitted or empty.
   Future<void> _showCsvImportDialog(BuildContext context) async {
     final csvController = TextEditingController();
     String? error;
@@ -169,10 +189,12 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Spaltenkopf: firstName,lastName,tableId,seat,isUsualCakeSuspect\n'
+                  'Spaltenkopf: firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
                   'Beispiel:\n'
-                  'firstName,lastName,tableId,seat,isUsualCakeSuspect\n'
-                  'Anna,Muster,1,A1,true',
+                  'firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
+                  'Anna,Muster,1,A1,true,false,\n'
+                  'Lina,Muster,1,A2,false,true,7\n'
+                  '(isChild und childAge sind optional, Standard ist Erwachsener)',
                   style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 12),
@@ -247,6 +269,11 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
       final cakeFlagRaw = (row['isUsualCakeSuspect'] ?? '').toLowerCase();
       final isCakeSuspect = ['true', '1', 'ja', 'yes'].contains(cakeFlagRaw);
 
+      // Defaults to adult (false) if the column is missing/empty.
+      final childFlagRaw = (row['isChild'] ?? '').toLowerCase();
+      final isChild = ['true', '1', 'ja', 'yes'].contains(childFlagRaw);
+      final childAge = isChild ? int.tryParse(row['childAge'] ?? '') : null;
+
       guests.add(
         Guest(
           id: '',
@@ -255,6 +282,8 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
           tableId: (row['tableId'] ?? '').isEmpty ? null : row['tableId'],
           seat: (row['seat'] ?? '').isEmpty ? null : row['seat'],
           isUsualCakeSuspect: isCakeSuspect,
+          isChild: isChild,
+          childAge: childAge,
         ),
       );
     }
