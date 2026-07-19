@@ -36,7 +36,7 @@ class _RouterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Unsere Hochzeit',
+      title: 'Hochzeit von Mariandi',
       theme: AppTheme.light(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
