@@ -1,39 +1,110 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/guest.dart';
+import '../services/auth_service.dart';
 import '../services/guest_repository.dart';
 import '../services/guest_session.dart';
+import '../services/wedding_config.dart';
 import '../widgets/guest_name_search.dart';
 
 /// The "hidden" seating plan: only reachable after the guest identifies
-/// themselves. Shows all tables, highlighting the guest's own table/seat.
-class SeatingPlanScreen extends StatelessWidget {
+/// themselves, and only once [WeddingConfig.seatingPlanUnlockTime] has
+/// passed (stays locked with a countdown until then). Admins (logged in
+/// via email/password) can preview it early.
+class SeatingPlanScreen extends StatefulWidget {
   const SeatingPlanScreen({super.key});
+
+  @override
+  State<SeatingPlanScreen> createState() => _SeatingPlanScreenState();
+}
+
+class _SeatingPlanScreenState extends State<SeatingPlanScreen> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-check the unlock time once a second so the countdown updates and
+    // the plan reveals itself automatically at the unlock moment, without
+    // requiring the guest to refresh the page.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final guest = context.watch<GuestSession>().guest;
+    final now = DateTime.now();
+    final isUnlocked =
+        !now.isBefore(WeddingConfig.seatingPlanUnlockTime) || AuthService().isAdmin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sitzplan')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: guest == null
-            ? SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
-                      'Bitte gib deinen Namen ein.',
+        child: !isUnlocked
+            ? _LockedCountdown(unlockTime: WeddingConfig.seatingPlanUnlockTime, now: now)
+            : guest == null
+                ? SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
+                          'Bitte gib deinen Namen ein.',
+                        ),
+                        const SizedBox(height: 16),
+                        const GuestNameSearch(),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    const GuestNameSearch(),
-                  ],
-                ),
-              )
-            : _SeatingPlanBody(currentGuest: guest),
+                  )
+                : _SeatingPlanBody(currentGuest: guest),
+      ),
+    );
+  }
+}
+
+class _LockedCountdown extends StatelessWidget {
+  final DateTime unlockTime;
+  final DateTime now;
+
+  const _LockedCountdown({required this.unlockTime, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = unlockTime.difference(now);
+    final hours = remaining.inHours;
+    final minutes = remaining.inMinutes.remainder(60);
+    final seconds = remaining.inSeconds.remainder(60);
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock_clock_outlined, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            'Der Sitzplan wird erst am Hochzeitstag freigeschaltet.',
+            style: Theme.of(context).textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          if (!remaining.isNegative)
+            Text(
+              'Noch $hours Std. $minutes Min. $seconds Sek.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+        ],
       ),
     );
   }

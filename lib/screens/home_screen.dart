@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Unsere Hochzeit')),
+      appBar: AppBar(title: const Text('Hochzeit von Mariandi')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -25,7 +25,7 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   Text(
-                    'Herzlich willkommen!',
+                    'Info und Timetable:',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
@@ -33,8 +33,8 @@ class HomeScreen extends StatelessWidget {
                     'Datum: 05.09.2026\n'
                     'Ort der Trauung: Solitude 1, 70197 Stuttgart-West\n'
                     'Ort der Feier: Königspl. 1, 70372 Stuttgart-Bad Cannstatt\n'
-                    'Ablauf: Trauung 13:00 Uhr · Sektverabschiedung am Schloss 13:45 · Sektempfang am Kursaal 15:30 Uhr · Kuchenbuffet ab 16:00 Uhr\n'
-                    'Dresscode: Come as you are! (Casual, comfortable, whatever makes you happy.)',
+                    'Ablauf: Trauung 13:00 Uhr · Sektverabschiedung am Schloss 13:45 · Sektempfang am Kursaal 15:30 Uhr · Kuchenbuffet ab 16:00 Uhr · Essen ab 18:00 Uhr\n'
+                    'Dresscode: Come as you are! (Casual, bequem, feierlich, wie auch immer du dich am wohlsten fühlst.)',
                   ),
                 ],
               ),
