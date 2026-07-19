@@ -30,10 +30,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Datum: TT.MM.JJJJ\n'
-                    'Ort: Beispiel-Location, Musterstadt\n'
-                    'Ablauf: Trauung 14:00 Uhr · Empfang 15:30 Uhr · Feier ab 18:00 Uhr\n'
-                    'Dresscode: Festlich',
+                    'Datum: 05.09.2026\n'
+                    'Ort der Trauung: Solitude 1, 70197 Stuttgart-West\n'
+                    'Ort der Feier: Königspl. 1, 70372 Stuttgart-Bad Cannstatt\n'
+                    'Ablauf: Trauung 13:00 Uhr · Sektverabschiedung am Schloss 13:45 · Sektempfang am Kursaal 15:30 Uhr · Kuchenbuffet ab 16:00 Uhr\n'
+                    'Dresscode: Come as you are! (Casual, comfortable, whatever makes you happy.)',
                   ),
                 ],
               ),
