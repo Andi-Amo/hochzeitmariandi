@@ -50,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                     'Ort der Trauung: Solitude 1, 70197 Stuttgart-West\n'
                     'Ort der Feier: Königspl. 1, 70372 Stuttgart-Bad Cannstatt\n'
                     'Ablauf: Trauung 13:00 Uhr · Sektverabschiedung am Schloss 13:45 · Sektempfang am Kursaal 15:30 Uhr · Kuchenbuffet ab 16:00 Uhr · Essen ab 18:00 Uhr\n'
-                    'Dresscode: Come as you are! (Casual, feierlich, wie auch immer du dich am wohlsten fühlst.)',
+                    'Dresscode: Come as you are! (Feierlich, bequem, wie auch immer du dich am wohlsten fühlst.)',
                   ),
                 ],
               ),
