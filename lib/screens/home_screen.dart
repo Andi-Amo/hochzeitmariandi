@@ -82,6 +82,12 @@ class HomeScreen extends StatelessWidget {
             onTap: () => context.go('/program'),
           ),
           _NavCard(
+            icon: Icons.location_city_rounded,
+            title: 'Location',
+            subtitle: 'Location der Trauung & Feier.',
+            onTap: () => context.go('/location'),
+          ),
+          _NavCard(
             icon: Icons.local_parking_outlined,
             title: 'Parken',
             subtitle: 'Parkmöglichkeiten an Trauung & Feier.',
