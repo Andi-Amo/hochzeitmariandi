@@ -33,7 +33,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Herzlich willkommen!'), findsOneWidget);
+    expect(find.text('Info und Timetable:'), findsOneWidget);
     expect(find.text('Auf Einladung antworten (RSVP)'), findsOneWidget);
     expect(find.text('Sitzplan'), findsOneWidget);
     expect(find.text('Kuchensektion'), findsOneWidget);
