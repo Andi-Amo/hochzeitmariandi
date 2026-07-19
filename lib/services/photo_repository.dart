@@ -1,19 +1,27 @@
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/wedding_photo.dart';
+import 'cloudinary_service.dart';
 
-/// Handles photo uploads to Firebase Storage and metadata in the
-/// `photos` collection. Uploaded photos appear immediately in the live
+/// Handles photo uploads (to Cloudinary) and metadata in the `photos`
+/// Firestore collection. Uploaded photos appear immediately in the live
 /// gallery (no moderation queue); curation (hiding/deleting) happens
 /// afterwards in the admin area.
+///
+/// Note: image files themselves live in Cloudinary (unsigned upload), not
+/// Firebase Storage — see [CloudinaryService] for why. `storagePath` on
+/// [WeddingPhoto] holds the Cloudinary `public_id` for reference, but actual
+/// deletion of the remote asset requires a signed Cloudinary API call (which
+/// needs a server-side secret we don't have client-side), so "deleting" a
+/// photo here only removes its Firestore entry — the file remains in
+/// Cloudinary's free-tier storage, harmlessly unused.
 class PhotoRepository {
   final CollectionReference<Map<String, dynamic>> _collection = FirebaseFirestore
       .instance
       .collection('photos');
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final CloudinaryService _cloudinary = CloudinaryService();
 
   Stream<List<WeddingPhoto>> watchVisiblePhotos() {
     return _collection
@@ -35,15 +43,12 @@ class PhotoRepository {
     required String fileName,
     String? uploaderName,
   }) async {
-    final storagePath = 'photos/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-    final ref = _storage.ref(storagePath);
-    await ref.putData(bytes);
-    final url = await ref.getDownloadURL();
+    final result = await _cloudinary.uploadBytes(bytes: bytes, fileName: fileName);
 
     final photo = WeddingPhoto(
       id: '',
-      url: url,
-      storagePath: storagePath,
+      url: result.secureUrl,
+      storagePath: result.publicId,
       uploaderName: uploaderName,
     );
     await _collection.add(photo.toMap());
@@ -54,11 +59,7 @@ class PhotoRepository {
   }
 
   Future<void> deletePhoto(WeddingPhoto photo) async {
+    // Only removes the Firestore entry; see class doc comment above.
     await _collection.doc(photo.id).delete();
-    try {
-      await _storage.ref(photo.storagePath).delete();
-    } catch (_) {
-      // Storage object may already be gone; ignore.
-    }
   }
 }

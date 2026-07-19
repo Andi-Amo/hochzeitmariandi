@@ -1,6 +1,11 @@
 rules_version = '2';
 
-// Storage rules for uploaded wedding photos.
+// NOTE: Currently unused. Photo uploads go through Cloudinary instead of
+// Firebase Storage (see lib/services/cloudinary_service.dart), because
+// Firebase Storage now requires the paid "Blaze" plan even for small/free
+// usage. Kept here in case the project later upgrades to Blaze and wants to
+// switch back to Firebase Storage — re-add a "storage" entry to
+// firebase.json pointing at this file to deploy it again.
 service firebase.storage {
   match /b/{bucket}/o {
     match /photos/{allPaths=**} {

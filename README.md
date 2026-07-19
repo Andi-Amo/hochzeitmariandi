@@ -28,10 +28,24 @@ und eine iOS-PWA (installierbar über "Zum Home-Bildschirm hinzufügen").
 - **Firebase** als Backend:
   - Firestore: `guests`, `cakes`, `photos`, `programItems` Collections
     (siehe [lib/models/](lib/models)).
-  - Firebase Storage: Foto-Uploads.
   - Firebase Auth: anonyme Sessions für Gäste (kein Login-UI nötig) +
     E-Mail/Passwort für den Admin-Bereich.
-  - Security Rules: [firestore.rules](firestore.rules), [storage.rules](storage.rules).
+  - Security Rules: [firestore.rules](firestore.rules).
+- **Cloudinary** für Foto-Uploads (siehe Hinweis unten) statt Firebase Storage.
+
+> **Warum Cloudinary statt Firebase Storage?** Google verlangt seit Ende 2024
+> für Firebase Storage zwingend den kostenpflichtigen "Blaze"-Tarif (inkl.
+> Kreditkarten-Verifizierung, die mehrere Tage dauern kann) – auch bei
+> minimaler Nutzung. Firestore und Auth bleiben im kostenlosen "Spark"-Tarif
+> nutzbar. Cloudinary bietet ein echtes Gratis-Kontingent (~25 GB) ohne
+> Zahlungsverifizierung und unterstützt "unsigned upload presets", mit denen
+> die App Fotos direkt hochladen kann, ohne ein Geheimnis im Client zu
+> speichern. Einziger Kompromiss: Löschen eines Fotos im Admin-Bereich
+> entfernt nur den Firestore-Eintrag (die Datei bleibt harmlos aber
+> unsichtbar in Cloudinary liegen, siehe
+> [lib/services/photo_repository.dart](lib/services/photo_repository.dart)).
+> Falls ihr später doch auf Blaze upgradet, liegt [storage.rules](storage.rules)
+> bereit, um wieder auf Firebase Storage zu wechseln.
 
 ## Einmalige Einrichtung
 
@@ -39,8 +53,8 @@ und eine iOS-PWA (installierbar über "Zum Home-Bildschirm hinzufügen").
 
 1. Gehe zu <https://console.firebase.google.com> und erstelle ein neues Projekt.
 2. Aktiviere in der Konsole:
-   - **Firestore Database** (im "production mode")
-   - **Storage**
+   - **Firestore Database** (im "production mode") – wird auch automatisch
+     beim ersten `firebase deploy` angelegt, falls noch nicht vorhanden.
    - **Authentication** → Sign-in-Methoden **Anonym** und **E-Mail/Passwort** aktivieren.
 3. Lege unter Authentication → Users manuell einen Admin-Account
    (E-Mail/Passwort) für das Brautpaar an.
@@ -62,16 +76,26 @@ den echten Projektwerten.
 ```powershell
 npm install -g firebase-tools
 firebase login
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-### 4. Abhängigkeiten installieren
+### 4. Cloudinary einrichten (Fotogalerie)
+
+1. Kostenloses Konto anlegen: <https://cloudinary.com/users/register_free>
+   (keine Kreditkarte nötig).
+2. Den "Cloud name" vom Dashboard notieren.
+3. Settings → Upload → Upload presets → "Add upload preset":
+   "Signing Mode" auf **Unsigned** stellen, speichern, Preset-Namen notieren.
+4. Beide Werte in [lib/services/cloudinary_config.dart](lib/services/cloudinary_config.dart)
+   eintragen (`cloudName`, `unsignedUploadPreset`).
+
+### 5. Abhängigkeiten installieren
 
 ```powershell
 flutter pub get
 ```
 
-### 5. Gästeliste befüllen
+### 6. Gästeliste befüllen
 
 Im Admin-Bereich (`/admin`, Login mit dem oben angelegten Account) auf
 **Gästeliste verwalten** → CSV-Import-Button. Erwartetes Format:
@@ -140,13 +164,13 @@ automatisch auf der Startseite angezeigt.
 ```
 lib/
   models/       Datenmodelle (Guest, CakeEntry, WeddingPhoto, ProgramItem)
-  services/     Firestore/Storage/Auth-Repositories + GuestSession-State
+  services/     Firestore/Cloudinary/Auth-Repositories + GuestSession-State
   screens/      Eine Datei pro Feature-Screen (RSVP, Sitzplan, Kuchen, ...)
   screens/admin Admin-Login, Dashboard, Gästeliste, Foto-Kuratierung
   widgets/      Wiederverwendbare Widgets (Namenssuche, iOS-Installhinweis)
   theme/        Zentrales App-Theming
   router.dart   Zentrale Routen-Tabelle (go_router)
   main.dart     App-Einstieg, Firebase-Init
-firestore.rules, storage.rules, firestore.indexes.json, firebase.json
+firestore.rules, storage.rules (aktuell inaktiv), firestore.indexes.json, firebase.json
   Security Rules & Firebase-Projektkonfiguration
 ```

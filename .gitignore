@@ -8,3 +8,16 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Flutter/Dart generated files
+**/.dart_tool/
+**/.packages
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/generated_plugin_registrant.*
+**/GeneratedPluginRegistrant.*
+.pub-cache/
+.pub/
+*.iml
+*.g.dart

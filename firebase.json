@@ -1,9 +1,1 @@
-{
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  }
-}
+{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"flutter":{"platforms":{"android":{"default":{"projectId":"hochzeit-von-mariandi","appId":"1:1017083127534:android:1e439dd5f1c63ffe08f5ff","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"hochzeit-von-mariandi","configurations":{"android":"1:1017083127534:android:1e439dd5f1c63ffe08f5ff","web":"1:1017083127534:web:fc5afccea58bd34608f5ff"}}}}}}
