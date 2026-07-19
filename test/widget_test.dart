@@ -37,6 +37,13 @@ void main() {
     expect(find.text('Auf Einladung antworten (RSVP)'), findsOneWidget);
     expect(find.text('Sitzplan'), findsOneWidget);
     expect(find.text('Kuchensektion'), findsOneWidget);
+
+    // The real wedding details text is longer than the old placeholder, so
+    // later nav entries no longer fit in the test viewport without
+    // scrolling the (lazily-built) ListView first.
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+
     expect(find.text('Fotogalerie'), findsOneWidget);
   });
 }
