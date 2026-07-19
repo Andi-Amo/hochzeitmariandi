@@ -31,7 +31,7 @@ class HomeScreen extends StatelessWidget {
           Image.asset(
             'images/paar.jpg',
             width: 100,
-            height: 100,
+            height: 600,
             fit: BoxFit.cover,
           ),
           Card(
