@@ -32,7 +32,7 @@ jobs:
         # Repo name is "wedapp", so GitHub Pages serves it under /wedapp/.
         # Adjust --base-href if the repository is renamed or served from a
         # custom domain (in that case use --base-href "/").
-        run: flutter build web --release --base-href "/wedapp/"
+        run: flutter build web --release --base-href "/hochzeitmariandi/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
