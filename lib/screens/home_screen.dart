@@ -71,6 +71,12 @@ class HomeScreen extends StatelessWidget {
             subtitle: 'Möchtest du etwas beitragen?',
             onTap: () => context.go('/program'),
           ),
+          _NavCard(
+            icon: Icons.local_parking_outlined,
+            title: 'Parken',
+            subtitle: 'Parkmöglichkeiten an Trauung & Feier.',
+            onTap: () => context.go('/parking'),
+          ),
           const Divider(height: 32),
           _NavCard(
             icon: Icons.android,

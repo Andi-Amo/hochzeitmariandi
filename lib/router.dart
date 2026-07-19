@@ -6,6 +6,7 @@ import 'screens/admin/admin_login_screen.dart';
 import 'screens/admin/admin_photo_curation_screen.dart';
 import 'screens/cake_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/parking_screen.dart';
 import 'screens/photo_gallery_screen.dart';
 import 'screens/program_signup_screen.dart';
 import 'screens/rsvp_screen.dart';
@@ -26,6 +27,7 @@ GoRouter buildRouter() {
       GoRoute(path: '/cakes', builder: (context, state) => const CakeScreen()),
       GoRoute(path: '/photos', builder: (context, state) => const PhotoGalleryScreen()),
       GoRoute(path: '/program', builder: (context, state) => const ProgramSignupScreen()),
+      GoRoute(path: '/parking', builder: (context, state) => const ParkingScreen()),
       GoRoute(path: '/admin', builder: (context, state) => const AdminLoginScreen()),
       GoRoute(
         path: '/admin/dashboard',

@@ -22,6 +22,7 @@ void main() {
         GoRoute(path: '/cakes', builder: (context, state) => const SizedBox()),
         GoRoute(path: '/photos', builder: (context, state) => const SizedBox()),
         GoRoute(path: '/program', builder: (context, state) => const SizedBox()),
+        GoRoute(path: '/parking', builder: (context, state) => const SizedBox()),
         GoRoute(path: '/admin', builder: (context, state) => const SizedBox()),
       ],
     );
@@ -45,5 +46,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Fotogalerie'), findsOneWidget);
+    expect(find.text('Parken'), findsOneWidget);
   });
 }
