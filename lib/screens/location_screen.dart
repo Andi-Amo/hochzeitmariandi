@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-
-
-
 class LocationScreen extends StatefulWidget {
   const LocationScreen({super.key});
 
@@ -11,8 +8,6 @@ class LocationScreen extends StatefulWidget {
 }
 
 class _LocationScreenState extends State<LocationScreen> {
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,49 +20,75 @@ class _LocationScreenState extends State<LocationScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'Schloss Solitude',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Image(
-                        image: AssetImage('images/solitude.jpg'),
+                      Expanded(
+                        child: SizedBox(
+                          height: 200,
+                          child: Image(
+                            image: const AssetImage('images/solitude.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                      SizedBox(width: 8),
-                      Image(
-                        image: AssetImage('images/solitude1.jpg'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 200,
+                          child: Image(
+                            image: const AssetImage('images/solitude1.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Ort der Trauung!\n'
-                    'Adresse: Solitude 1, 70197 Stuttgart-West\n'
+                    'Adresse: Solitude 1, 70197 Stuttgart-West\n',
+                    style: TextStyle(fontSize: 22),
                   ),
-
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Kleiner Kursaal Bad Cannstatt',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Image(
-                        image: AssetImage('images/kursaal.jpg'),
+                      Expanded(
+                        child: SizedBox(
+                          height: 200,
+                          child: Image(
+                            image: const AssetImage('images/kursaal.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                      SizedBox(width: 8),
-                      Image(
-                        image: AssetImage('images/kursaal1.jpg'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: SizedBox(
+                          height: 200,
+                          child: Image(
+                            image: const AssetImage('images/kursaal1.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Ort der Feier!\n'
-                    'Adresse: Königspl. 1, 70372 Stuttgart-Bad Cannstatt\n'
+                    'Adresse: Königspl. 1, 70372 Stuttgart-Bad Cannstatt\n',
+                    style: TextStyle(fontSize: 22),
                   ),
                 ],
               ),

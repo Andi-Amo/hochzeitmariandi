@@ -28,6 +28,12 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           const IosInstallHint(),
+          Image.asset(
+            'images/paar.jpg',
+            width: 200,
+            height: 200,
+            fit: BoxFit.cover,
+          ),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
