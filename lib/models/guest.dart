@@ -5,6 +5,7 @@ class Guest {
   final String id;
   final String firstName;
   final String lastName;
+  final String? groupId; // <--- Added: Family / Household group ID
   final String? tableId;
   final String? seat;
 
@@ -28,6 +29,7 @@ class Guest {
     required this.id,
     required this.firstName,
     required this.lastName,
+    this.groupId, // <--- Added
     this.tableId,
     this.seat,
     this.isUsualCakeSuspect = false,
@@ -50,6 +52,7 @@ class Guest {
       id: doc.id,
       firstName: data['firstName'] as String? ?? '',
       lastName: data['lastName'] as String? ?? '',
+      groupId: data['groupId'] as String?, // <--- Added
       tableId: data['tableId'] as String?,
       seat: data['seat'] as String?,
       isUsualCakeSuspect: data['isUsualCakeSuspect'] as bool? ?? false,
@@ -65,6 +68,7 @@ class Guest {
     return {
       'firstName': firstName,
       'lastName': lastName,
+      'groupId': groupId, // <--- Added
       'tableId': tableId,
       'seat': seat,
       'isUsualCakeSuspect': isUsualCakeSuspect,
@@ -77,6 +81,7 @@ class Guest {
   }
 
   Guest copyWith({
+    String? groupId, // <--- Added
     String? tableId,
     String? seat,
     bool? isUsualCakeSuspect,
@@ -90,6 +95,7 @@ class Guest {
       id: id,
       firstName: firstName,
       lastName: lastName,
+      groupId: groupId ?? this.groupId, // <--- Added
       tableId: tableId ?? this.tableId,
       seat: seat ?? this.seat,
       isUsualCakeSuspect: isUsualCakeSuspect ?? this.isUsualCakeSuspect,

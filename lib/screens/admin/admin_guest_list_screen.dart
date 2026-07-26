@@ -4,8 +4,7 @@ import '../../models/guest.dart';
 import '../../services/guest_repository.dart';
 
 /// Admin screen to view/edit the guest list: table/seat assignment,
-/// the "usual cake suspect" flag, and RSVP status. Guests can be added one
-/// by one, or bulk-imported by pasting CSV text (see [_showCsvImportDialog]).
+/// household/group grouping, the "usual cake suspect" flag, and RSVP status.
 class AdminGuestListScreen extends StatefulWidget {
   const AdminGuestListScreen({super.key});
 
@@ -22,6 +21,11 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
       appBar: AppBar(
         title: const Text('Gästeliste'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.storage),
+            tooltip: 'groupId zu alten Einträgen hinzufügen',
+            onPressed: () => _runGroupIdMigration(context),
+          ),
           IconButton(
             icon: const Icon(Icons.upload_file),
             tooltip: 'CSV importieren',
@@ -54,7 +58,7 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                     : const Icon(Icons.person_outline),
                 title: Text(g.fullName),
                 subtitle: Text(
-                  'Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
+                  'Gruppe: ${g.groupId ?? '-'} · Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
                   '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
                 ),
                 trailing: IconButton(
@@ -69,9 +73,50 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
     );
   }
 
+  /// One-time Migration helper to add missing `groupId` fields to Firestore docs.
+  Future<void> _runGroupIdMigration(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Datenbank aktualisieren'),
+        content: const Text(
+          'Möchtest du allen vorhandenen Gästen in Firestore das Feld "groupId" hinzufügen (falls noch nicht vorhanden)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Aktualisieren'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await _repository.backfillGroupIdToAllGuests();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Alle Einträge in Firestore wurden aktualisiert!')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fehler beim Aktualisieren: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _showEditDialog(BuildContext context, Guest? existing) async {
     final firstNameController = TextEditingController(text: existing?.firstName ?? '');
     final lastNameController = TextEditingController(text: existing?.lastName ?? '');
+    final groupIdController = TextEditingController(text: existing?.groupId ?? '');
     final tableController = TextEditingController(text: existing?.tableId ?? '');
     final seatController = TextEditingController(text: existing?.seat ?? '');
     final childAgeController = TextEditingController(
@@ -96,6 +141,13 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                 TextField(
                   controller: lastNameController,
                   decoration: const InputDecoration(labelText: 'Nachname'),
+                ),
+                TextField(
+                  controller: groupIdController,
+                  decoration: const InputDecoration(
+                    labelText: 'Gruppe / Familien-ID',
+                    hintText: 'z.B. familie-muster oder schmidts',
+                  ),
                 ),
                 TextField(
                   controller: tableController,
@@ -139,10 +191,12 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
             ),
             FilledButton(
               onPressed: () async {
+                final groupVal = groupIdController.text.trim();
                 final guest = Guest(
                   id: existing?.id ?? '',
                   firstName: firstNameController.text.trim(),
                   lastName: lastNameController.text.trim(),
+                  groupId: groupVal.isEmpty ? null : groupVal,
                   tableId: tableController.text.trim().isEmpty ? null : tableController.text.trim(),
                   seat: seatController.text.trim().isEmpty ? null : seatController.text.trim(),
                   isUsualCakeSuspect: isCakeSuspect,
@@ -167,12 +221,8 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
     );
   }
 
-  /// Bulk-imports guests from pasted CSV text. Expected columns (header
-  /// row required, order doesn't matter):
-  ///   firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge
-  /// `isUsualCakeSuspect`/`isChild` accept true/false/1/0/ja/nein
-  /// (case-insensitive). Guests default to adult (isChild=false) if the
-  /// column is omitted or empty.
+  /// Bulk-imports guests from pasted CSV text. Expected columns:
+  /// firstName,lastName,groupId,tableId,seat,isUsualCakeSuspect,isChild,childAge
   Future<void> _showCsvImportDialog(BuildContext context) async {
     final csvController = TextEditingController();
     String? error;
@@ -189,12 +239,12 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Spaltenkopf: firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
+                  'Spaltenkopf: firstName,lastName,groupId,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
                   'Beispiel:\n'
-                  'firstName,lastName,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
-                  'Anna,Muster,1,A1,true,false,\n'
-                  'Lina,Muster,1,A2,false,true,7\n'
-                  '(isChild und childAge sind optional, Standard ist Erwachsener)',
+                  'firstName,lastName,groupId,tableId,seat,isUsualCakeSuspect,isChild,childAge\n'
+                  'Anna,Muster,muster-familie,1,A1,true,false,\n'
+                  'Lina,Muster,muster-familie,1,A2,false,true,7\n'
+                  '(groupId, isChild und childAge sind optional)',
                   style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 12),
@@ -266,10 +316,10 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
       final lastName = row['lastName'] ?? '';
       if (firstName.isEmpty && lastName.isEmpty) continue;
 
+      final groupId = row['groupId'] ?? '';
       final cakeFlagRaw = (row['isUsualCakeSuspect'] ?? '').toLowerCase();
       final isCakeSuspect = ['true', '1', 'ja', 'yes'].contains(cakeFlagRaw);
 
-      // Defaults to adult (false) if the column is missing/empty.
       final childFlagRaw = (row['isChild'] ?? '').toLowerCase();
       final isChild = ['true', '1', 'ja', 'yes'].contains(childFlagRaw);
       final childAge = isChild ? int.tryParse(row['childAge'] ?? '') : null;
@@ -279,6 +329,7 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
           id: '',
           firstName: firstName,
           lastName: lastName,
+          groupId: groupId.isEmpty ? null : groupId,
           tableId: (row['tableId'] ?? '').isEmpty ? null : row['tableId'],
           seat: (row['seat'] ?? '').isEmpty ? null : row['seat'],
           isUsualCakeSuspect: isCakeSuspect,

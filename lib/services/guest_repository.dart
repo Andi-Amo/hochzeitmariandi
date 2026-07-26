@@ -18,6 +18,12 @@ class GuestRepository {
     );
   }
 
+  /// Fetches all guests belonging to the same household or family group.
+  Future<List<Guest>> fetchGuestsByGroupId(String groupId) async {
+    final snapshot = await _collection.where('groupId', isEqualTo: groupId).get();
+    return snapshot.docs.map(Guest.fromFirestore).toList();
+  }
+
   /// Finds a guest by matching first + last name (case/whitespace-insensitive).
   /// Returns null if no unique match is found.
   Future<Guest?> findByName(String query) async {
@@ -34,6 +40,21 @@ class GuestRepository {
       }
     }
     return null;
+  }
+
+  /// One-time batch script to backfill `groupId` (set to null if missing) 
+  /// across all existing documents in Firestore.
+  Future<void> backfillGroupIdToAllGuests() async {
+    final snapshot = await _collection.get();
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (final doc in snapshot.docs) {
+      if (!doc.data().containsKey('groupId')) {
+        batch.update(doc.reference, {'groupId': null});
+      }
+    }
+
+    await batch.commit();
   }
 
   Future<void> updateRsvp({
@@ -54,9 +75,11 @@ class GuestRepository {
   }
 
   Future<void> addGuest(Guest guest) async {
-    await _collection.doc(guest.id.isEmpty ? null : guest.id).set(
-      guest.toMap(),
-    );
+    if (guest.id.isEmpty) {
+      await _collection.add(guest.toMap());
+    } else {
+      await _collection.doc(guest.id).set(guest.toMap());
+    }
   }
 
   Future<void> updateGuest(Guest guest) async {
