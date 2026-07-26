@@ -38,6 +38,15 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.mic_none_outlined),
+              title: const Text('Programmpunkte & Reden'),
+              subtitle: const Text('Angemeldete Reden, Diashows & Beiträge'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/admin/program'),
+            ),
+          ),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Fotos kuratieren'),
               subtitle: const Text('Fotos ausblenden oder löschen'),

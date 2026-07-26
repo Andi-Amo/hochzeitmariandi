@@ -30,9 +30,9 @@ class HomeScreen extends StatelessWidget {
           const IosInstallHint(),
           Image.asset(
             'images/paar.jpg',
-            width: 100,
-            height: 600,
-            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 500,
+            fit: BoxFit.contain,
           ),
           Card(
             child: Padding(
