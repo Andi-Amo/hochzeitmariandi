@@ -31,10 +31,57 @@ class _RsvpScreenState extends State<RsvpScreen> {
   final Map<String, _GuestRsvpFormState> _formStates = {};
 
   @override
+  void initState() {
+    super.initState();
+    // Watch session changes in case a guest is already active
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndLoadGroup();
+    });
+  }
+
+  @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
+    for (var form in _formStates.values) {
+      form.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _checkAndLoadGroup() async {
+    final activeGuest = context.read<GuestSession>().guest;
+    if (activeGuest != null) {
+      await _loadGroupForGuest(activeGuest);
+    }
+  }
+
+  Future<void> _loadGroupForGuest(Guest guest) async {
+    setState(() => _isSearching = true);
+    try {
+      List<Guest> group = [];
+      if (guest.groupId != null && guest.groupId!.isNotEmpty) {
+        group = await _repository.fetchGuestsByGroup(guest.groupId!);
+      }
+      if (group.isEmpty) {
+        group = [guest];
+      }
+
+      if (mounted) {
+        setState(() {
+          _groupGuests = group;
+          _initFormStates(group);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Laden der Gruppe: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
   }
 
   // Calculate simple string distance for "Did you mean?" suggestions
@@ -62,56 +109,97 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 
   Future<void> _performSearch() async {
-    final fn = _firstNameController.text.trim();
-    final ln = _lastNameController.text.trim();
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final query = '$firstName $lastName'.trim();
 
-    if (fn.isEmpty && ln.isEmpty) return;
+    if (query.isEmpty) return;
 
     setState(() {
       _isSearching = true;
       _noMatchFound = false;
-      _suggestedGuests.clear();
-      _groupGuests.clear();
+      _suggestedGuests = [];
     });
 
     try {
-      final allGuests = await _repository.fetchAllGuests();
+      final matches = await _repository.searchGuests(query);
 
-      // 1. Try Exact Match (Case-insensitive)
-      final exactMatches = allGuests.where((g) {
-        final matchFn = fn.isEmpty || g.firstName.toLowerCase() == fn.toLowerCase();
-        final matchLn = ln.isEmpty || g.lastName.toLowerCase() == ln.toLowerCase();
-        return matchFn && matchLn;
-      }).toList();
+      if (!mounted) return;
 
-      if (exactMatches.isNotEmpty) {
-        final matchedGuest = exactMatches.first;
-        context.read<GuestSession>().identify(matchedGuest);
+      if (matches.isEmpty) {
+        // Try fuzzy suggestions if no exact matches found
+        final allGuests = await _repository.fetchAllGuests();
+        final suggestions = allGuests.where((g) {
+          final dist = _levenshteinDistance(query, g.fullName);
+          return dist <= 3;
+        }).toList();
 
-        // Fetch all guests in the same family / household group if groupId exists
-        if (matchedGuest.groupId != null && matchedGuest.groupId!.isNotEmpty) {
-          _groupGuests = allGuests.where((g) => g.groupId == matchedGuest.groupId).toList();
-        } else {
-          _groupGuests = [matchedGuest];
+        setState(() {
+          _noMatchFound = true;
+          _suggestedGuests = suggestions;
+        });
+
+        if (suggestions.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kein Gast unter diesem Namen gefunden. Bitte überprüfe die Schreibweise.'),
+            ),
+          );
         }
-
-        _initFormStates(_groupGuests);
+      } else if (matches.length == 1) {
+        // Single match -> set active guest and load group
+        final guest = matches.first;
+        context.read<GuestSession>().identify(guest);
+        await _loadGroupForGuest(guest);
       } else {
-        // 2. Fuzzy Match / Smart Suggestions
-        final searchString = '$fn $ln'.trim();
-        final sorted = List<Guest>.from(allGuests)
-          ..sort((a, b) {
-            final scoreA = _levenshteinDistance(searchString, '${a.firstName} ${a.lastName}');
-            final scoreB = _levenshteinDistance(searchString, '${b.firstName} ${b.lastName}');
-            return scoreA.compareTo(scoreB);
-          });
-
-        _suggestedGuests = sorted.take(3).toList();
-        _noMatchFound = true;
+        // Multiple matches found -> show picker dialog
+        _showSelectGuestDialog(matches);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler bei der Suche: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
+  }
+
+  /// Dialog shown when multiple guests match the search query
+  void _showSelectGuestDialog(List<Guest> matches) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bitte wähle deinen Namen aus:'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: matches.length,
+            itemBuilder: (ctx, index) {
+              final g = matches[index];
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(g.fullName),
+                subtitle: g.groupId != null ? Text('Gruppe: ${g.groupId}') : null,
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  context.read<GuestSession>().identify(g);
+                  await _loadGroupForGuest(g);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _selectGuestFromSuggestions(Guest guest) async {
@@ -121,6 +209,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 
   void _initFormStates(List<Guest> guests) {
+    _formStates.clear();
     for (var g in guests) {
       _formStates[g.id] = _GuestRsvpFormState(
         status: g.rsvpStatus ?? 'attending',
@@ -141,8 +230,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
       final form = entry.value;
 
       final age = int.tryParse(form.childAgeController.text.trim());
-      
-      // Calculate plusOne count (1 if enabled, 0 if disabled)
       final plusOneCount = form.hasPlusOne ? 1 : 0;
 
       await _repository.updateRsvp(
@@ -252,7 +339,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
 
   // --- Multi-Guest / Family RSVP Section ---
   Widget _buildRsvpFormSection() {
-    final allSaved = _formStates.values.every((f) => f.isSaved);
+    final allSaved = _formStates.values.isNotEmpty && _formStates.values.every((f) => f.isSaved);
 
     if (allSaved) {
       return Center(
@@ -271,6 +358,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
               onPressed: () {
                 setState(() {
                   _groupGuests.clear();
+                  _formStates.clear();
                   context.read<GuestSession>().clear();
                 });
               },
@@ -307,7 +395,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 
   Widget _buildSingleGuestCard(Guest guest) {
-    final form = _formStates[guest.id]!;
+    final form = _formStates[guest.id];
+    if (form == null) return const SizedBox.shrink();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -345,7 +434,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
                 items: const [
                   DropdownMenuItem(value: false, child: Text('Erwachsen')),
                   DropdownMenuItem(value: true, child: Text('Kind')),
-                  DropdownMenuItem(value: true, child: Text('Geistlich Kind geblieben esse aber wie ein Erwachsener')),
                 ],
                 onChanged: (val) => setState(() => form.isChild = val ?? false),
               ),
@@ -368,7 +456,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -472,4 +560,11 @@ class _GuestRsvpFormState {
     required this.plusOneLastNameController,
     required this.plusOneIsChild,
   });
+
+  void dispose() {
+    childAgeController.dispose();
+    notesController.dispose();
+    plusOneFirstNameController.dispose();
+    plusOneLastNameController.dispose();
+  }
 }

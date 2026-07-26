@@ -31,25 +31,77 @@ class _GuestNameSearchState extends State<GuestNameSearch> {
   }
 
   Future<void> _search() async {
+    final query = _controller.text.trim();
+    if (query.isEmpty) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
-      final guest = await _repository.findByName(_controller.text);
+      final matches = await _repository.searchGuests(query);
       if (!mounted) return;
-      if (guest == null) {
+
+      if (matches.isEmpty) {
         setState(() {
           _error = 'Wir konnten dich leider nicht auf der Gästeliste finden. '
-              'Bitte überprüfe die Schreibweise deines vollen Namens.';
+              'Bitte überprüfe die Schreibweise deines Namens.';
         });
+      } else if (matches.length == 1) {
+        _selectGuest(matches.first);
       } else {
-        context.read<GuestSession>().identify(guest);
-        widget.onIdentified?.call(guest);
+        // Multiple matches found (e.g. surname search) -> show picker
+        _showGuestSelectionDialog(matches);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Fehler bei der Suche. Bitte versuche es erneut.';
+        });
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _selectGuest(Guest guest) {
+    context.read<GuestSession>().identify(guest);
+    widget.onIdentified?.call(guest);
+  }
+
+  void _showGuestSelectionDialog(List<Guest> matches) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bitte wähle deinen Namen aus:'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: matches.length,
+            itemBuilder: (ctx, index) {
+              final g = matches[index];
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(g.fullName),
+                subtitle: g.groupId != null ? Text('Gruppe: ${g.groupId}') : null,
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _selectGuest(g);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -62,7 +114,7 @@ class _GuestNameSearchState extends State<GuestNameSearch> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             labelText: widget.label,
-            hintText: 'Vorname Nachname',
+            hintText: 'Vorname oder Nachname',
             prefixIcon: const Icon(Icons.person_search),
           ),
           onSubmitted: (_) => _search(),
@@ -71,7 +123,10 @@ class _GuestNameSearchState extends State<GuestNameSearch> {
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ElevatedButton.icon(
           onPressed: _loading ? null : _search,

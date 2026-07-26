@@ -24,22 +24,41 @@ class GuestRepository {
     return snapshot.docs.map(Guest.fromFirestore).toList();
   }
 
-  /// Finds a guest by matching first + last name (case/whitespace-insensitive).
-  /// Returns null if no unique match is found.
-  Future<Guest?> findByName(String query) async {
+  /// Searches for guests matching the query.
+  /// Returns ALL matching guests if multiple exist (e.g. searching "Schmidt" 
+  /// returns all Schmidts, or searching "Anna" returns all Annas).
+  Future<List<Guest>> searchGuests(String query) async {
     final normalizedQuery = query.trim().toLowerCase().replaceAll(
       RegExp(r'\s+'),
       ' ',
     );
-    if (normalizedQuery.isEmpty) return null;
+    if (normalizedQuery.isEmpty) return [];
 
-    final guests = await fetchAllGuests();
-    for (final guest in guests) {
-      if (guest.normalizedName == normalizedQuery) {
-        return guest;
+    final allGuests = await fetchAllGuests();
+    final matches = <Guest>[];
+
+    for (final guest in allGuests) {
+      final normFirst = guest.firstName.trim().toLowerCase();
+      final normLast = guest.lastName.trim().toLowerCase();
+      final normFull = guest.normalizedName;
+
+      // Match exact full name, or if query is contained in first/last/full name
+      if (normFull == normalizedQuery ||
+          normFirst == normalizedQuery ||
+          normLast == normalizedQuery ||
+          normFirst.contains(normalizedQuery) ||
+          normLast.contains(normalizedQuery)) {
+        matches.add(guest);
       }
     }
-    return null;
+
+    return matches;
+  }
+
+  /// Finds a single guest by name matching (fallback)
+  Future<Guest?> findByName(String query) async {
+    final results = await searchGuests(query);
+    return results.isNotEmpty ? results.first : null;
   }
 
   /// One-time batch script to backfill `groupId` (set to null if missing) 
@@ -88,5 +107,17 @@ class GuestRepository {
 
   Future<void> deleteGuest(String guestId) async {
     await _collection.doc(guestId).delete();
+  }
+  
+
+  Future<List<Guest>> fetchGuestsByGroup(String groupId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('guests')
+        .where('groupId', isEqualTo: groupId)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => Guest.fromFirestore(doc))
+        .toList();
   }
 }
