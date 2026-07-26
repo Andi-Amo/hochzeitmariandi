@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import '../models/guest.dart';
 import '../services/guest_repository.dart';
 import '../services/guest_session.dart';
 
 /// Reformed RSVP Flow with First/Last name matching, family group loading,
-/// clear Adult/Child dropdowns, and interactive +1 registration.
+/// clear Adult/Child dropdowns, interactive +1 registration, and direct link to Cake entry.
 class RsvpScreen extends StatefulWidget {
   const RsvpScreen({super.key});
 
@@ -23,6 +23,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
 
   // State
   bool _isSearching = false;
+  bool _isSubmitting = false;
   List<Guest> _groupGuests = [];
   List<Guest> _suggestedGuests = [];
   bool _noMatchFound = false;
@@ -33,7 +34,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
   @override
   void initState() {
     super.initState();
-    // Watch session changes in case a guest is already active
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndLoadGroup();
     });
@@ -84,7 +84,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
     }
   }
 
-  // Calculate simple string distance for "Did you mean?" suggestions
   int _levenshteinDistance(String s1, String s2) {
     s1 = s1.toLowerCase().trim();
     s2 = s2.toLowerCase().trim();
@@ -99,7 +98,11 @@ class _RsvpScreenState extends State<RsvpScreen> {
       v1[0] = i + 1;
       for (int j = 0; j < s2.length; j++) {
         int cost = (s1[i] == s2[j]) ? 0 : 1;
-        v1[j + 1] = [v1[j] + 1, v0[j + 1] + 1, v0[j] + cost].reduce((a, b) => a < b ? a : b);
+        v1[j + 1] = [
+          v1[j] + 1,
+          v0[j + 1] + 1,
+          v0[j] + cost
+        ].reduce((a, b) => a < b ? a : b);
       }
       for (int j = 0; j <= s2.length; j++) {
         v0[j] = v1[j];
@@ -127,7 +130,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
       if (!mounted) return;
 
       if (matches.isEmpty) {
-        // Try fuzzy suggestions if no exact matches found
         final allGuests = await _repository.fetchAllGuests();
         final suggestions = allGuests.where((g) {
           final dist = _levenshteinDistance(query, g.fullName);
@@ -142,17 +144,17 @@ class _RsvpScreenState extends State<RsvpScreen> {
         if (suggestions.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Kein Gast unter diesem Namen gefunden. Bitte überprüfe die Schreibweise.'),
+              content: Text(
+                'Kein Gast unter diesem Namen gefunden. Bitte überprüfe die Schreibweise.',
+              ),
             ),
           );
         }
       } else if (matches.length == 1) {
-        // Single match -> set active guest and load group
         final guest = matches.first;
         context.read<GuestSession>().identify(guest);
         await _loadGroupForGuest(guest);
       } else {
-        // Multiple matches found -> show picker dialog
         _showSelectGuestDialog(matches);
       }
     } catch (e) {
@@ -166,7 +168,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
     }
   }
 
-  /// Dialog shown when multiple guests match the search query
   void _showSelectGuestDialog(List<Guest> matches) {
     showDialog(
       context: context,
@@ -182,7 +183,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
               return ListTile(
                 leading: const Icon(Icons.person),
                 title: Text(g.fullName),
-                subtitle: g.groupId != null ? Text('Gruppe: ${g.groupId}') : null,
+                subtitle:
+                    g.groupId != null ? Text('Gruppe: ${g.groupId}') : null,
                 onTap: () async {
                   Navigator.of(ctx).pop();
                   context.read<GuestSession>().identify(g);
@@ -209,12 +211,18 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 
   void _initFormStates(List<Guest> guests) {
+    for (var form in _formStates.values) {
+      form.dispose();
+    }
     _formStates.clear();
+
     for (var g in guests) {
       _formStates[g.id] = _GuestRsvpFormState(
         status: g.rsvpStatus ?? 'attending',
         isChild: g.isChild,
-        childAgeController: TextEditingController(text: g.childAge != null ? '${g.childAge}' : ''),
+        childAgeController: TextEditingController(
+          text: g.childAge != null ? '${g.childAge}' : '',
+        ),
         notesController: TextEditingController(text: g.dietaryNotes ?? ''),
         hasPlusOne: g.plusOnes > 0,
         plusOneFirstNameController: TextEditingController(),
@@ -225,29 +233,60 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 
   Future<void> _submitAll() async {
-    for (var entry in _formStates.entries) {
-      final guestId = entry.key;
-      final form = entry.value;
+    setState(() => _isSubmitting = true);
 
-      final age = int.tryParse(form.childAgeController.text.trim());
-      final plusOneCount = form.hasPlusOne ? 1 : 0;
+    try {
+      for (var entry in _formStates.entries) {
+        final guestId = entry.key;
+        final form = entry.value;
 
-      await _repository.updateRsvp(
-        guestId: guestId,
-        rsvpStatus: form.status,
-        plusOnes: plusOneCount,
-        dietaryNotes: form.notesController.text.trim().isEmpty ? null : form.notesController.text.trim(),
-        isChild: form.isChild,
-        childAge: form.isChild ? age : null,
-      );
-    }
+        final age = int.tryParse(form.childAgeController.text.trim());
+        final plusOneCount = form.hasPlusOne ? 1 : 0;
 
-    if (mounted) {
-      setState(() {
-        for (var f in _formStates.values) {
-          f.isSaved = true;
+        // 1. Update primary guest's RSVP
+        await _repository.updateRsvp(
+          guestId: guestId,
+          rsvpStatus: form.status,
+          plusOnes: plusOneCount,
+          dietaryNotes: form.notesController.text.trim().isEmpty
+              ? null
+              : form.notesController.text.trim(),
+          isChild: form.isChild,
+          childAge: form.isChild ? age : null,
+        );
+
+        // 2. Persist companion (+1) if registered
+        if (form.hasPlusOne && form.status == 'attending') {
+          final primaryGuest = _groupGuests.firstWhere(
+            (g) => g.id == guestId,
+            orElse: () => Guest(id: guestId, firstName: '', lastName: ''),
+          );
+
+          await _repository.addPlusOneGuest(
+            primaryGuestId: guestId,
+            groupId: primaryGuest.groupId,
+            firstName: form.plusOneFirstNameController.text,
+            lastName: form.plusOneLastNameController.text,
+            isChild: form.plusOneIsChild,
+          );
         }
-      });
+      }
+
+      if (mounted) {
+        setState(() {
+          for (var f in _formStates.values) {
+            f.isSaved = true;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Speichern: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -259,9 +298,56 @@ class _RsvpScreenState extends State<RsvpScreen> {
       appBar: AppBar(title: const Text('Auf Einladung antworten')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: activeGuest == null || _groupGuests.isEmpty
-            ? _buildSearchSection()
-            : _buildRsvpFormSection(),
+        child: Column(
+          children: [
+            // Banner linking to Cake Screen at the top
+            _buildCakeBanner(),
+            const SizedBox(height: 16),
+            activeGuest == null || _groupGuests.isEmpty
+                ? _buildSearchSection()
+                : _buildRsvpFormSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Cake Offer Link Banner ---
+  Widget _buildCakeBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cake, color: Colors.blue, size: 20),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () async {
+              // Respects hash-based routing on GitHub Pages (e.g. your-app/#/cakes)
+              final Uri url = Uri.parse('${Uri.base.origin}${Uri.base.path}#/cakes');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, webOnlyWindowName: '_blank');
+              }
+            },
+            child: const Text(
+              'Ich möchte einen Kuchen mitbringen',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.open_in_new, color: Colors.blue, size: 16),
+        ],
       ),
     );
   }
@@ -319,7 +405,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
           const SizedBox(height: 24),
           const Text(
             'Kein genauer Treffer gefunden. Meintest du einen dieser Namen?',
-            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.orange, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           ..._suggestedGuests.map(
@@ -339,7 +426,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
 
   // --- Multi-Guest / Family RSVP Section ---
   Widget _buildRsvpFormSection() {
-    final allSaved = _formStates.values.isNotEmpty && _formStates.values.every((f) => f.isSaved);
+    final allSaved = _formStates.values.isNotEmpty &&
+        _formStates.values.every((f) => f.isSaved);
 
     if (allSaved) {
       return Center(
@@ -358,6 +446,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
               onPressed: () {
                 setState(() {
                   _groupGuests.clear();
+                  for (var form in _formStates.values) {
+                    form.dispose();
+                  }
                   _formStates.clear();
                   context.read<GuestSession>().clear();
                 });
@@ -377,7 +468,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
             'Familien-/Gruppeneinladung',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const Text('Du kannst hier für alle Personen deiner Gruppe antworten:'),
+          const Text(
+              'Du kannst hier für alle Personen deiner Gruppe antworten:'),
           const SizedBox(height: 16),
         ],
         ..._groupGuests.map((guest) => _buildSingleGuestCard(guest)),
@@ -386,8 +478,14 @@ class _RsvpScreenState extends State<RsvpScreen> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: _submitAll,
-            child: const Text('Alle Antworten absenden'),
+            onPressed: _isSubmitting ? null : _submitAll,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Alle Antworten absenden'),
           ),
         ),
       ],
@@ -407,24 +505,21 @@ class _RsvpScreenState extends State<RsvpScreen> {
           children: [
             Text(
               '${guest.firstName} ${guest.lastName}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-
-            // Attending / Declined Segmented Button
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'attending', label: Text('Ich komme')),
-                ButtonSegment(value: 'declined', label: Text('Ich kann leider nicht')),
+                ButtonSegment(
+                    value: 'declined', label: Text('Ich kann leider nicht')),
               ],
               selected: {form.status},
               onSelectionChanged: (s) => setState(() => form.status = s.first),
             ),
-
             if (form.status == 'attending') ...[
               const SizedBox(height: 16),
-
-              // Adult / Child Dropdown
               DropdownButtonFormField<bool>(
                 value: form.isChild,
                 decoration: const InputDecoration(
@@ -435,9 +530,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
                   DropdownMenuItem(value: false, child: Text('Erwachsen')),
                   DropdownMenuItem(value: true, child: Text('Kind')),
                 ],
-                onChanged: (val) => setState(() => form.isChild = val ?? false),
+                onChanged: (val) =>
+                    setState(() => form.isChild = val ?? false),
               ),
-
               if (form.isChild) ...[
                 const SizedBox(height: 12),
                 TextField(
@@ -449,14 +544,14 @@ class _RsvpScreenState extends State<RsvpScreen> {
                   ),
                 ),
               ],
-
               const SizedBox(height: 16),
-
-              // Plus-One Line & Toggle Button
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -472,7 +567,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
                         ),
                         Switch(
                           value: form.hasPlusOne,
-                          onChanged: (val) => setState(() => form.hasPlusOne = val),
+                          onChanged: (val) =>
+                              setState(() => form.hasPlusOne = val),
                         ),
                       ],
                     ),
@@ -509,16 +605,17 @@ class _RsvpScreenState extends State<RsvpScreen> {
                           isDense: true,
                         ),
                         items: const [
-                          DropdownMenuItem(value: false, child: Text('Erwachsen')),
+                          DropdownMenuItem(
+                              value: false, child: Text('Erwachsen')),
                           DropdownMenuItem(value: true, child: Text('Kind')),
                         ],
-                        onChanged: (v) => setState(() => form.plusOneIsChild = v ?? false),
+                        onChanged: (v) =>
+                            setState(() => form.plusOneIsChild = v ?? false),
                       ),
                     ]
                   ],
                 ),
               ),
-
               const SizedBox(height: 12),
               TextField(
                 controller: form.notesController,
@@ -536,7 +633,6 @@ class _RsvpScreenState extends State<RsvpScreen> {
   }
 }
 
-/// Helper state container for each individual guest in a family group
 class _GuestRsvpFormState {
   String status;
   bool isChild;

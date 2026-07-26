@@ -3,9 +3,8 @@ import '../models/guest.dart';
 
 /// Handles all Firestore access for the `guests` collection.
 class GuestRepository {
-  final CollectionReference<Map<String, dynamic>> _collection = FirebaseFirestore
-      .instance
-      .collection('guests');
+  final CollectionReference<Map<String, dynamic>> _collection =
+      FirebaseFirestore.instance.collection('guests');
 
   Future<List<Guest>> fetchAllGuests() async {
     final snapshot = await _collection.get();
@@ -14,14 +13,23 @@ class GuestRepository {
 
   Stream<List<Guest>> watchAllGuests() {
     return _collection.snapshots().map(
-      (snap) => snap.docs.map(Guest.fromFirestore).toList(),
-    );
+          (snap) => snap.docs.map(Guest.fromFirestore).toList(),
+        );
   }
 
   /// Fetches all guests belonging to the same household or family group.
+  Future<List<Guest>> fetchGuestsByGroup(String groupId) async {
+    if (groupId.trim().isEmpty) return [];
+
+    final querySnapshot =
+        await _collection.where('groupId', isEqualTo: groupId).get();
+
+    return querySnapshot.docs.map(Guest.fromFirestore).toList();
+  }
+
+  /// Alias for fetchGuestsByGroup for backwards compatibility
   Future<List<Guest>> fetchGuestsByGroupId(String groupId) async {
-    final snapshot = await _collection.where('groupId', isEqualTo: groupId).get();
-    return snapshot.docs.map(Guest.fromFirestore).toList();
+    return fetchGuestsByGroup(groupId);
   }
 
   /// Searches for guests matching the query.
@@ -29,9 +37,9 @@ class GuestRepository {
   /// returns all Schmidts, or searching "Anna" returns all Annas).
   Future<List<Guest>> searchGuests(String query) async {
     final normalizedQuery = query.trim().toLowerCase().replaceAll(
-      RegExp(r'\s+'),
-      ' ',
-    );
+          RegExp(r'\s+'),
+          ' ',
+        );
     if (normalizedQuery.isEmpty) return [];
 
     final allGuests = await fetchAllGuests();
@@ -76,6 +84,7 @@ class GuestRepository {
     await batch.commit();
   }
 
+  /// Updates the RSVP status for an existing guest document.
   Future<void> updateRsvp({
     required String guestId,
     required String rsvpStatus,
@@ -93,11 +102,50 @@ class GuestRepository {
     });
   }
 
+  /// Creates and saves a new +1 companion directly linked to a primary guest's group.
+  Future<DocumentReference> addPlusOneGuest({
+    required String primaryGuestId,
+    required String? groupId,
+    required String firstName,
+    required String lastName,
+    required bool isChild,
+  }) async {
+    // Fall back to primaryGuestId as the groupId if no group exists yet
+    final effectiveGroupId = (groupId != null && groupId.isNotEmpty)
+        ? groupId
+        : primaryGuestId;
+
+    final companionMap = {
+      'firstName': firstName.trim().isEmpty ? 'Begleitung' : firstName.trim(),
+      'lastName': lastName.trim().isEmpty ? '' : lastName.trim(),
+      'rsvpStatus': 'attending',
+      'groupId': effectiveGroupId,
+      'isChild': isChild,
+      'plusOnes': 0,
+      'dietaryNotes': null,
+      'isPlusOneOf': primaryGuestId, // Reference to primary guest
+    };
+
+    return await _collection.add(companionMap);
+  }
+
+  /// Adds or overwrites a guest document.
   Future<void> addGuest(Guest guest) async {
     if (guest.id.isEmpty) {
       await _collection.add(guest.toMap());
     } else {
       await _collection.doc(guest.id).set(guest.toMap());
+    }
+  }
+
+  /// Creates a guest document and returns the reference.
+  Future<DocumentReference> createGuest(Guest guest) async {
+    if (guest.id.isEmpty) {
+      return await _collection.add(guest.toMap());
+    } else {
+      final docRef = _collection.doc(guest.id);
+      await docRef.set(guest.toMap());
+      return docRef;
     }
   }
 
@@ -107,17 +155,5 @@ class GuestRepository {
 
   Future<void> deleteGuest(String guestId) async {
     await _collection.doc(guestId).delete();
-  }
-  
-
-  Future<List<Guest>> fetchGuestsByGroup(String groupId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('guests')
-        .where('groupId', isEqualTo: groupId)
-        .get();
-
-    return querySnapshot.docs
-        .map((doc) => Guest.fromFirestore(doc))
-        .toList();
   }
 }
