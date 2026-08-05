@@ -63,6 +63,13 @@
         countdownAudioElement.play().catch(err => console.log('Countdown sound error:', err));
       }
     }
+    
+    function stopCountdownSound() {
+      if (countdownAudioElement) {
+        countdownAudioElement.pause();
+        countdownAudioElement.currentTime = 0;
+      }
+    }
   </script>
 </head>
 <body>

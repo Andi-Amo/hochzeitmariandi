@@ -114,11 +114,25 @@ class _LockedCountdownState extends State<_LockedCountdown> {
     _playCountdownSound();
   }
 
+  @override
+  void dispose() {
+    _stopCountdownSound();
+    super.dispose();
+  }
+
   void _playCountdownSound() {
     try {
       js.context.callMethod('playCountdownSoundLoop', []);
     } catch (e) {
       print('Countdown sound error: $e');
+    }
+  }
+
+  void _stopCountdownSound() {
+    try {
+      js.context.callMethod('stopCountdownSound', []);
+    } catch (e) {
+      print('Countdown sound stop error: $e');
     }
   }
 
