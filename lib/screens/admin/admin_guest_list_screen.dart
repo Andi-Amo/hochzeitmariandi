@@ -15,6 +15,7 @@ class AdminGuestListScreen extends StatefulWidget {
 
 class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
   final GuestRepository _repository = GuestRepository();
+  String _filterRsvp = 'all'; // all, accepted, pending, declined
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +39,7 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => _showEditDialog(context, null),
+          tooltip: 'Gast hinzufügen',
           child: const Icon(Icons.person_add),
         ),
         body: StreamBuilder<List<Guest>>(
@@ -46,30 +48,141 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final guests = snapshot.data!
+            final allGuests = snapshot.data!
               ..sort((a, b) => a.fullName.compareTo(b.fullName));
-            if (guests.isEmpty) {
+
+            // Calculate statistics
+            final totalGuests = allGuests.length;
+            final accepted = allGuests.where((g) => g.rsvpStatus == 'accepted').length;
+            final declined = allGuests.where((g) => g.rsvpStatus == 'declined').length;
+            final pending = allGuests.where((g) => g.rsvpStatus == 'pending').length;
+
+            // Filter guests based on selected RSVP status
+            final filteredGuests = _filterRsvp == 'all'
+                ? allGuests
+                : allGuests.where((g) => g.rsvpStatus == _filterRsvp).toList();
+
+            if (allGuests.isEmpty) {
               return const Center(child: Text('Noch keine Gäste angelegt.'));
             }
-            return ListView.builder(
-              itemCount: guests.length,
-              itemBuilder: (context, index) {
-                final g = guests[index];
-                return ListTile(
-                  leading: g.isUsualCakeSuspect
-                      ? const Icon(Icons.cake, color: Colors.brown)
-                      : const Icon(Icons.person_outline),
-                  title: Text(g.fullName),
-                  subtitle: Text(
-                    'Gruppe: ${g.groupId ?? '-'} · Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
-                    '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
+
+            return ListView(
+              padding: const EdgeInsets.only(bottom: 100),
+              children: [
+                // Summary Statistics Section
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Übersicht',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _StatCard(
+                                label: 'Gesamt',
+                                value: totalGuests.toString(),
+                                color: Colors.blue,
+                              ),
+                              _StatCard(
+                                label: 'Zugesagt',
+                                value: accepted.toString(),
+                                color: Colors.green,
+                              ),
+                              _StatCard(
+                                label: 'Ausstehend',
+                                value: pending.toString(),
+                                color: Colors.orange,
+                              ),
+                              _StatCard(
+                                label: 'Abgesagt',
+                                value: declined.toString(),
+                                color: Colors.red,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _showEditDialog(context, g),
+                ),
+                // Sorting/Filtering Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Filterung nach RSVP-Status:',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: const Text('Alle'),
+                            selected: _filterRsvp == 'all',
+                            onSelected: (selected) => setState(() => _filterRsvp = 'all'),
+                          ),
+                          FilterChip(
+                            label: const Text('Zugesagt'),
+                            selected: _filterRsvp == 'accepted',
+                            onSelected: (selected) =>
+                                setState(() => _filterRsvp = 'accepted'),
+                          ),
+                          FilterChip(
+                            label: const Text('Ausstehend'),
+                            selected: _filterRsvp == 'pending',
+                            onSelected: (selected) =>
+                                setState(() => _filterRsvp = 'pending'),
+                          ),
+                          FilterChip(
+                            label: const Text('Abgesagt'),
+                            selected: _filterRsvp == 'declined',
+                            onSelected: (selected) =>
+                                setState(() => _filterRsvp = 'declined'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (filteredGuests.isEmpty)
+                        Center(
+                          child: Text(
+                            'Keine Gäste mit Status "$_filterRsvp" gefunden.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      else
+                        ...filteredGuests.map((g) {
+                          return ListTile(
+                            leading: g.isUsualCakeSuspect
+                                ? const Icon(Icons.cake, color: Colors.brown)
+                                : const Icon(Icons.person_outline),
+                            title: Text(g.fullName),
+                            subtitle: Text(
+                              'Gruppe: ${g.groupId ?? '-'} · Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
+                              '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _showEditDialog(context, g),
+                            ),
+                          );
+                        }),
+                    ],
                   ),
-                );
-              },
+                ),
+              ],
             );
           },
         ),
@@ -367,5 +480,53 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
       );
     }
     return guests;
+  }
+}
+
+/// Helper widget to display statistics
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
