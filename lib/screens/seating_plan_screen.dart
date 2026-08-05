@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:js' as js;
 
 import '../widgets/home_back_button.dart';
 
@@ -85,15 +86,48 @@ class _SeatingPlanScreenState extends State<SeatingPlanScreen> {
   }
 }
 
-class _LockedCountdown extends StatelessWidget {
+class _LockedCountdown extends StatefulWidget {
   final DateTime unlockTime;
   final DateTime now;
 
   const _LockedCountdown({required this.unlockTime, required this.now});
 
   @override
+  State<_LockedCountdown> createState() => _LockedCountdownState();
+}
+
+class _LockedCountdownState extends State<_LockedCountdown> {
+  late Timer _soundTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _playCountdownSound();
+    // Play sound every 2 seconds while countdown is active
+    _soundTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) {
+        _playCountdownSound();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _soundTimer.cancel();
+    super.dispose();
+  }
+
+  void _playCountdownSound() {
+    try {
+      js.context.callMethod('playCountdownSound', []);
+    } catch (e) {
+      print('Countdown sound error: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final remaining = unlockTime.difference(now);
+    final remaining = widget.unlockTime.difference(widget.now);
     final days = remaining.inDays;
     final hours = remaining.inHours.remainder(24);
     final minutes = remaining.inMinutes.remainder(60);

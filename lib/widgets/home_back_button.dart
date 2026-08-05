@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'dart:js' as js;
 
 class HomeBackButton extends StatefulWidget {
   const HomeBackButton({super.key});
@@ -11,22 +11,21 @@ class HomeBackButton extends StatefulWidget {
 
 class _HomeBackButtonState extends State<HomeBackButton> {
   bool _hovered = false;
-  late AudioPlayer _audioPlayer;
 
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
+  void _playMusic() {
+    try {
+      js.context.callMethod('playAudio', []);
+    } catch (e) {
+      print('Audio playback error: $e');
+    }
   }
 
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  Future<void> _playMusic() async {
-    await _audioPlayer.play(AssetSource('assets/audio/take_me_home.webm'));
+  void _stopMusic() {
+    try {
+      js.context.callMethod('stopAudio', []);
+    } catch (e) {
+      print('Audio stop error: $e');
+    }
   }
 
   @override
@@ -41,7 +40,10 @@ class _HomeBackButtonState extends State<HomeBackButton> {
       onExit: (_) => setState(() => _hovered = false),
       child: IconButton(
         icon: Icon(_hovered ? Icons.home : Icons.home_outlined),
-        onPressed: () => context.go('/'),
+        onPressed: () {
+          _stopMusic();
+          context.go('/');
+        },
       ),
     );
   }

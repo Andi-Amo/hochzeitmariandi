@@ -32,6 +32,36 @@
   <title>Unsere Hochzeit</title>
   <meta name="theme-color" content="#8C6D5C">
   <link rel="manifest" href="manifest.json">
+  
+  <script>
+    let audioElement;
+    let countdownAudioElement;
+    
+    function playAudio() {
+      if (!audioElement) {
+        audioElement = new Audio('assets/audio/take_me_home.ogg');
+        audioElement.crossOrigin = 'anonymous';
+      }
+      audioElement.currentTime = 0;
+      audioElement.play().catch(err => console.log('Audio play error:', err));
+    }
+    
+    function stopAudio() {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+    }
+    
+    function playCountdownSound() {
+      if (!countdownAudioElement) {
+        countdownAudioElement = new Audio('assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
+        countdownAudioElement.crossOrigin = 'anonymous';
+      }
+      countdownAudioElement.currentTime = 0;
+      countdownAudioElement.play().catch(err => console.log('Countdown sound error:', err));
+    }
+  </script>
 </head>
 <body>
   <!--

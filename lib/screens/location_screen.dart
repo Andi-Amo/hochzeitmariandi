@@ -55,6 +55,7 @@ class LocationScreen extends StatelessWidget {
               title: '2. Parken am kleinen Kurpark',
               spots: _kurparkParking,
             ),
+             
           ],
         ),
       ),
