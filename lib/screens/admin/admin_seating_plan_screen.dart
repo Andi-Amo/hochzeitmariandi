@@ -105,7 +105,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '10 Tische à 120 Plätze • Drag & Drop zum Verschieben',
+                      '10 Tische à 10 Plätze (2 Reihen × 5 Stühle) • Drag & Drop zum Verschieben',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -144,7 +144,7 @@ class _TableSeatingUI extends StatefulWidget {
 }
 
 class _TableSeatingUIState extends State<_TableSeatingUI> {
-  late List<Guest?> _seats; // 120 seats per table
+  late List<Guest?> _seats; // 10 seats per table (2 rows × 5 columns)
 
   @override
   void initState() {
@@ -153,12 +153,12 @@ class _TableSeatingUIState extends State<_TableSeatingUI> {
   }
 
   void _initializeSeats() {
-    _seats = List<Guest?>.filled(120, null);
+    _seats = List<Guest?>.filled(10, null);
     for (final g in widget.guests) {
       if (g.seat != null) {
         try {
           final seatNumber = int.parse(g.seat!) - 1;
-          if (seatNumber >= 0 && seatNumber < 120) {
+          if (seatNumber >= 0 && seatNumber < 10) {
             _seats[seatNumber] = g;
           }
         } catch (e) {
@@ -186,7 +186,7 @@ class _TableSeatingUIState extends State<_TableSeatingUI> {
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -196,101 +196,137 @@ class _TableSeatingUIState extends State<_TableSeatingUI> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 12,
-                mainAxisSpacing: 4,
-                crossAxisSpacing: 4,
-                childAspectRatio: 0.9,
-              ),
-              itemCount: 120,
-              itemBuilder: (context, index) {
-                final seatNumber = index + 1;
-                final guest = _seats[index];
-
-                return DragTarget<Guest>(
-                  onAcceptWithDetails: (details) {
-                    setState(() {
-                      final draggedGuest = details.data;
-                      // Remove from old seat
-                      for (int i = 0; i < _seats.length; i++) {
-                        if (_seats[i]?.id == draggedGuest.id) {
-                          _seats[i] = null;
-                        }
-                      }
-                      // Add to new seat
-                      _seats[index] = draggedGuest;
-                      widget.onUpdateSeat(
-                        draggedGuest,
-                        widget.tableNumber.toString(),
-                        seatNumber.toString(),
-                      );
-                    });
-                  },
-                  builder: (context, candidateData, rejectedData) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: candidateData.isNotEmpty
-                              ? Colors.green
-                              : Colors.grey.shade300,
-                          width: candidateData.isNotEmpty ? 2 : 1,
+            const SizedBox(height: 24),
+            // Table diagram layout: Top row, Table, Bottom row
+            Center(
+              child: Column(
+                children: [
+                  // Top row (seats 0-4)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < 5; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _buildSeatWidget(i),
                         ),
-                        borderRadius: BorderRadius.circular(4),
-                        color: guest != null
-                            ? _getGroupColor(guest).withValues(alpha: 0.2)
-                            : Colors.grey.shade50,
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Table representation
+                  Container(
+                    width: 300,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.brown.shade100,
+                      border: Border.all(color: Colors.brown, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Tisch ${widget.tableNumber}',
+                        style: TextStyle(
+                          color: Colors.brown.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (guest != null) ...[
-                            Draggable<Guest>(
-                              data: guest,
-                              feedback: _SeatCard(
-                                guest: guest,
-                                seatNumber: seatNumber,
-                                groupColor: _getGroupColor(guest),
-                              ),
-                              child: _SeatCard(
-                                guest: guest,
-                                seatNumber: seatNumber,
-                                groupColor: _getGroupColor(guest),
-                              ),
-                            ),
-                          ] else
-                            Text(
-                              seatNumber.toString(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Bottom row (seats 5-9)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 5; i < 10; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _buildSeatWidget(i),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildSeatWidget(int index) {
+    final guest = _seats[index];
+    final seatNumber = index + 1;
+
+    return DragTarget<Guest>(
+      onAcceptWithDetails: (details) {
+        setState(() {
+          final draggedGuest = details.data;
+          // Remove from old seat
+          for (int i = 0; i < _seats.length; i++) {
+            if (_seats[i]?.id == draggedGuest.id) {
+              _seats[i] = null;
+            }
+          }
+          // Add to new seat
+          _seats[index] = draggedGuest;
+          widget.onUpdateSeat(
+            draggedGuest,
+            widget.tableNumber.toString(),
+            seatNumber.toString(),
+          );
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        return Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: candidateData.isNotEmpty
+                  ? Colors.green
+                  : Colors.grey.shade300,
+              width: candidateData.isNotEmpty ? 3 : 2,
+            ),
+            color: guest != null
+                ? _getGroupColor(guest).withValues(alpha: 0.3)
+                : Colors.grey.shade50,
+          ),
+          child: guest != null
+              ? Draggable<Guest>(
+                  data: guest,
+                  feedback: _ChairCard(
+                    guest: guest,
+                    groupColor: _getGroupColor(guest),
+                  ),
+                  child: _ChairCard(
+                    guest: guest,
+                    groupColor: _getGroupColor(guest),
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    seatNumber.toString(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ),
+        );
+      },
+    );
+  }
 }
 
-class _SeatCard extends StatelessWidget {
+class _ChairCard extends StatelessWidget {
   final Guest guest;
-  final int seatNumber;
   final Color groupColor;
 
-  const _SeatCard({
+  const _ChairCard({
     required this.guest,
-    required this.seatNumber,
     required this.groupColor,
   });
 
@@ -298,30 +334,27 @@ class _SeatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: groupColor.withValues(alpha: 0.3),
+        shape: BoxShape.circle,
+        color: groupColor.withValues(alpha: 0.4),
         border: Border.all(color: groupColor, width: 2),
-        borderRadius: BorderRadius.circular(4),
       ),
-      padding: const EdgeInsets.all(4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             guest.isChild ? Icons.child_care : Icons.person,
-            size: 16,
+            size: 20,
             color: groupColor,
           ),
           Text(
-            guest.groupId ?? '-',
-            style: TextStyle(
+            guest.firstName.split(' ').first,
+            style: const TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.bold,
-              color: groupColor,
+              height: 0.8,
             ),
-          ),
-          Text(
-            guest.firstName.split(' ').first,
-            style: const TextStyle(fontSize: 7),
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
