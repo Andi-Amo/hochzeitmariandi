@@ -97,29 +97,15 @@ class _LockedCountdown extends StatefulWidget {
 }
 
 class _LockedCountdownState extends State<_LockedCountdown> {
-  late Timer _soundTimer;
-
   @override
   void initState() {
     super.initState();
     _playCountdownSound();
-    // Play sound every 2 seconds while countdown is active
-    _soundTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) {
-        _playCountdownSound();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _soundTimer.cancel();
-    super.dispose();
   }
 
   void _playCountdownSound() {
     try {
-      js.context.callMethod('playCountdownSound', []);
+      js.context.callMethod('playCountdownSoundLoop', []);
     } catch (e) {
       print('Countdown sound error: $e');
     }

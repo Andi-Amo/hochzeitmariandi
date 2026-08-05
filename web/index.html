@@ -53,13 +53,15 @@
       }
     }
     
-    function playCountdownSound() {
+    function playCountdownSoundLoop() {
       if (!countdownAudioElement) {
         countdownAudioElement = new Audio('assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
         countdownAudioElement.crossOrigin = 'anonymous';
+        countdownAudioElement.loop = true;
       }
-      countdownAudioElement.currentTime = 0;
-      countdownAudioElement.play().catch(err => console.log('Countdown sound error:', err));
+      if (countdownAudioElement.paused) {
+        countdownAudioElement.play().catch(err => console.log('Countdown sound error:', err));
+      }
     }
   </script>
 </head>
