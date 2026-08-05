@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/wedding_photo.dart';
+import '../widgets/home_back_button.dart';
 import '../services/guest_session.dart';
 import '../services/photo_repository.dart';
 
@@ -21,7 +22,10 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
   bool _uploading = false;
 
   Future<void> _pickAndUpload(ImageSource source) async {
-    final XFile? file = await _picker.pickImage(source: source, imageQuality: 85);
+    final XFile? file = await _picker.pickImage(
+      source: source,
+      imageQuality: 85,
+    );
     if (file == null || !mounted) return;
 
     final uploaderName = context.read<GuestSession>().guest?.fullName;
@@ -34,59 +38,66 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
         uploaderName: uploaderName,
       );
     } finally {
-      if (mounted) setState(() => _uploading = false);
+      if (mounted) {
+        setState(() => _uploading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Fotogalerie')),
-      floatingActionButton: _uploading
-          ? const FloatingActionButton(
-              onPressed: null,
-              child: CircularProgressIndicator(color: Colors.white),
-            )
-          : FloatingActionButton.extended(
-              onPressed: () => _showUploadOptions(context),
-              icon: const Icon(Icons.add_a_photo),
-              label: const Text('Foto hochladen'),
-            ),
-      body: StreamBuilder<List<WeddingPhoto>>(
-        stream: _repository.watchVisiblePhotos(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final photos = snapshot.data!;
-          if (photos.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Noch keine Fotos. Sei die/der Erste und teile einen Schnappschuss!',
-                  textAlign: TextAlign.center,
-                ),
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Fotogalerie'),
+        ),
+        floatingActionButton: _uploading
+            ? const FloatingActionButton(
+                onPressed: null,
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : FloatingActionButton.extended(
+                onPressed: () => _showUploadOptions(context),
+                icon: const Icon(Icons.add_a_photo),
+                label: const Text('Foto hochladen'),
               ),
-            );
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-            ),
-            itemCount: photos.length,
-            itemBuilder: (context, index) {
-              final photo = photos[index];
-              return GestureDetector(
-                onTap: () => _showFullPhoto(context, photo),
-                child: Image.network(photo.url, fit: BoxFit.cover),
+        body: StreamBuilder<List<WeddingPhoto>>(
+          stream: _repository.watchVisiblePhotos(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final photos = snapshot.data!;
+            if (photos.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Noch keine Fotos. Sei die/der Erste und teile einen Schnappschuss!',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               );
-            },
-          );
-        },
+            }
+            return GridView.builder(
+              padding: const EdgeInsets.all(8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                final photo = photos[index];
+                return GestureDetector(
+                  onTap: () => _showFullPhoto(context, photo),
+                  child: Image.network(photo.url, fit: BoxFit.cover),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -122,9 +133,8 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
   void _showFullPhoto(BuildContext context, WeddingPhoto photo) {
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        child: InteractiveViewer(child: Image.network(photo.url)),
-      ),
+      builder: (ctx) =>
+          Dialog(child: InteractiveViewer(child: Image.network(photo.url))),
     );
   }
 }

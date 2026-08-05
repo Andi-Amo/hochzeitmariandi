@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../widgets/home_back_button.dart';
+
 import '../models/guest.dart';
 import '../services/auth_service.dart';
 import '../services/guest_repository.dart';
@@ -46,29 +48,38 @@ class _SeatingPlanScreenState extends State<SeatingPlanScreen> {
     final guest = context.watch<GuestSession>().guest;
     final now = DateTime.now();
     final isUnlocked =
-        !now.isBefore(WeddingConfig.seatingPlanUnlockTime) || AuthService().isAdmin;
+        !now.isBefore(WeddingConfig.seatingPlanUnlockTime) ||
+        AuthService().isAdmin;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sitzplan')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: !isUnlocked
-            ? _LockedCountdown(unlockTime: WeddingConfig.seatingPlanUnlockTime, now: now)
-            : guest == null
-                ? SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
-                          'Bitte gib deinen Namen ein.',
-                        ),
-                        const SizedBox(height: 16),
-                        const GuestNameSearch(),
-                      ],
-                    ),
-                  )
-                : _SeatingPlanBody(currentGuest: guest),
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Sitzplan'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: !isUnlocked
+              ? _LockedCountdown(
+                  unlockTime: WeddingConfig.seatingPlanUnlockTime,
+                  now: now,
+                )
+              : guest == null
+              ? SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
+                        'Bitte gib deinen Namen ein.',
+                      ),
+                      const SizedBox(height: 16),
+                      const GuestNameSearch(),
+                    ],
+                  ),
+                )
+              : _SeatingPlanBody(currentGuest: guest),
+        ),
       ),
     );
   }
@@ -193,9 +204,13 @@ class _TableCard extends StatelessWidget {
                 final isMe = g.id == currentGuestId;
                 return Chip(
                   avatar: isMe ? const Icon(Icons.star, size: 18) : null,
-                  label: Text(g.fullName + (g.seat != null ? ' (${g.seat})' : '')),
+                  label: Text(
+                    g.fullName + (g.seat != null ? ' (${g.seat})' : ''),
+                  ),
                   backgroundColor: isMe ? colorScheme.primary : null,
-                  labelStyle: isMe ? TextStyle(color: colorScheme.onPrimary) : null,
+                  labelStyle: isMe
+                      ? TextStyle(color: colorScheme.onPrimary)
+                      : null,
                 );
               }).toList(),
             ),

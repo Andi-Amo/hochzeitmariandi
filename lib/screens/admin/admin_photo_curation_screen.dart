@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/wedding_photo.dart';
 import '../../services/photo_repository.dart';
+import '../../widgets/home_back_button.dart';
 
 /// Admin screen to curate the live photo gallery: hide inappropriate/
 /// duplicate photos or delete them permanently.
@@ -12,65 +13,79 @@ class AdminPhotoCurationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = PhotoRepository();
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Fotos kuratieren')),
-      body: StreamBuilder<List<WeddingPhoto>>(
-        stream: repository.watchAllPhotosForAdmin(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final photos = snapshot.data!;
-          if (photos.isEmpty) {
-            return const Center(child: Text('Noch keine Fotos hochgeladen.'));
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-            ),
-            itemCount: photos.length,
-            itemBuilder: (context, index) {
-              final photo = photos[index];
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  Opacity(
-                    opacity: photo.hidden ? 0.3 : 1,
-                    child: Image.network(photo.url, fit: BoxFit.cover),
-                  ),
-                  Positioned(
-                    top: 2,
-                    right: 2,
-                    child: PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        if (value == 'toggle') {
-                          await repository.setHidden(photo.id, !photo.hidden);
-                        } else if (value == 'delete') {
-                          await repository.deletePhoto(photo);
-                        }
-                      },
-                      itemBuilder: (ctx) => [
-                        PopupMenuItem(
-                          value: 'toggle',
-                          child: Text(photo.hidden ? 'Wieder einblenden' : 'Ausblenden'),
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Fotos kuratieren'),
+        ),
+        body: StreamBuilder<List<WeddingPhoto>>(
+          stream: repository.watchAllPhotosForAdmin(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final photos = snapshot.data!;
+            if (photos.isEmpty) {
+              return const Center(child: Text('Noch keine Fotos hochgeladen.'));
+            }
+            return GridView.builder(
+              padding: const EdgeInsets.all(8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+              ),
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                final photo = photos[index];
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Opacity(
+                      opacity: photo.hidden ? 0.3 : 1,
+                      child: Image.network(photo.url, fit: BoxFit.cover),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'toggle') {
+                            await repository.setHidden(photo.id, !photo.hidden);
+                          } else if (value == 'delete') {
+                            await repository.deletePhoto(photo);
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem(
+                            value: 'toggle',
+                            child: Text(
+                              photo.hidden ? 'Wieder einblenden' : 'Ausblenden',
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Löschen'),
+                          ),
+                        ],
+                        child: const CircleAvatar(
+                          radius: 14,
+                          backgroundColor: Colors.black54,
+                          child: Icon(
+                            Icons.more_vert,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
-                        const PopupMenuItem(value: 'delete', child: Text('Löschen')),
-                      ],
-                      child: const CircleAvatar(
-                        radius: 14,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.more_vert, size: 16, color: Colors.white),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

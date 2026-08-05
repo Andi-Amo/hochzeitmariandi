@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../models/program_item.dart';
 import '../../services/program_repository.dart';
+import '../../widgets/home_back_button.dart';
 
 /// Admin overview screen to view and manage all submitted program items
 /// (speeches, slideshows, games, etc.) submitted by guests.
@@ -59,67 +61,68 @@ class _AdminProgramOverviewScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Programmpunkte Overview'),
-      ),
-      body: StreamBuilder<List<ProgramItem>>(
-        stream: _repository.watchAllItems(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Programmpunkte Overview'),
+        ),
+        body: StreamBuilder<List<ProgramItem>>(
+          stream: _repository.watchAllItems(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Fehler beim Laden der Programmpunkte: ${snapshot.error}',
-              ),
-            );
-          }
-
-          final items = snapshot.data ?? [];
-
-          if (items.isEmpty) {
-            return const Center(
-              child: Text(
-                'Noch keine Reden oder Beiträge angemeldet. 🎉',
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Icon(_getTypeIcon(item.type)),
-                  ),
-                  title: Text(
-                    '${item.guestName} (${item.type})',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(item.description),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    color: Theme.of(context).colorScheme.error,
-                    tooltip: 'Löschen',
-                    onPressed: () => _confirmDelete(context, item),
-                  ),
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Fehler beim Laden der Programmpunkte: ${snapshot.error}',
                 ),
               );
-            },
-          );
-        },
+            }
+
+            final items = snapshot.data ?? [];
+
+            if (items.isEmpty) {
+              return const Center(
+                child: Text(
+                  'Noch keine Reden oder Beiträge angemeldet. 🎉',
+                  style: TextStyle(fontSize: 16),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(child: Icon(_getTypeIcon(item.type))),
+                    title: Text(
+                      '${item.guestName} (${item.type})',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(item.description),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      color: Theme.of(context).colorScheme.error,
+                      tooltip: 'Löschen',
+                      onPressed: () => _confirmDelete(context, item),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

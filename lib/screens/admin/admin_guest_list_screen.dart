@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/guest.dart';
+import '../../widgets/home_back_button.dart';
 import '../../services/guest_repository.dart';
 
 /// Admin screen to view/edit the guest list: table/seat assignment,
@@ -17,58 +18,61 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gästeliste'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.storage),
-            tooltip: 'groupId zu alten Einträgen hinzufügen',
-            onPressed: () => _runGroupIdMigration(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.upload_file),
-            tooltip: 'CSV importieren',
-            onPressed: () => _showCsvImportDialog(context),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEditDialog(context, null),
-        child: const Icon(Icons.person_add),
-      ),
-      body: StreamBuilder<List<Guest>>(
-        stream: _repository.watchAllGuests(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final guests = snapshot.data!
-            ..sort((a, b) => a.fullName.compareTo(b.fullName));
-          if (guests.isEmpty) {
-            return const Center(child: Text('Noch keine Gäste angelegt.'));
-          }
-          return ListView.builder(
-            itemCount: guests.length,
-            itemBuilder: (context, index) {
-              final g = guests[index];
-              return ListTile(
-                leading: g.isUsualCakeSuspect
-                    ? const Icon(Icons.cake, color: Colors.brown)
-                    : const Icon(Icons.person_outline),
-                title: Text(g.fullName),
-                subtitle: Text(
-                  'Gruppe: ${g.groupId ?? '-'} · Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
-                  '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showEditDialog(context, g),
-                ),
-              );
-            },
-          );
-        },
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Gästeliste'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.storage),
+              tooltip: 'groupId zu alten Einträgen hinzufügen',
+              onPressed: () => _runGroupIdMigration(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.upload_file),
+              tooltip: 'CSV importieren',
+              onPressed: () => _showCsvImportDialog(context),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showEditDialog(context, null),
+          child: const Icon(Icons.person_add),
+        ),
+        body: StreamBuilder<List<Guest>>(
+          stream: _repository.watchAllGuests(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final guests = snapshot.data!
+              ..sort((a, b) => a.fullName.compareTo(b.fullName));
+            if (guests.isEmpty) {
+              return const Center(child: Text('Noch keine Gäste angelegt.'));
+            }
+            return ListView.builder(
+              itemCount: guests.length,
+              itemBuilder: (context, index) {
+                final g = guests[index];
+                return ListTile(
+                  leading: g.isUsualCakeSuspect
+                      ? const Icon(Icons.cake, color: Colors.brown)
+                      : const Icon(Icons.person_outline),
+                  title: Text(g.fullName),
+                  subtitle: Text(
+                    'Gruppe: ${g.groupId ?? '-'} · Tisch: ${g.tableId ?? '-'} · Platz: ${g.seat ?? '-'} · RSVP: ${g.rsvpStatus} · '
+                    '${g.isChild ? 'Kind${g.childAge != null ? ' (${g.childAge} J.)' : ''}' : 'Erwachsener'}',
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEditDialog(context, g),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -100,7 +104,9 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
         await _repository.backfillGroupIdToAllGuests();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Alle Einträge in Firestore wurden aktualisiert!')),
+            const SnackBar(
+              content: Text('Alle Einträge in Firestore wurden aktualisiert!'),
+            ),
           );
         }
       } catch (e) {
@@ -114,10 +120,18 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
   }
 
   Future<void> _showEditDialog(BuildContext context, Guest? existing) async {
-    final firstNameController = TextEditingController(text: existing?.firstName ?? '');
-    final lastNameController = TextEditingController(text: existing?.lastName ?? '');
-    final groupIdController = TextEditingController(text: existing?.groupId ?? '');
-    final tableController = TextEditingController(text: existing?.tableId ?? '');
+    final firstNameController = TextEditingController(
+      text: existing?.firstName ?? '',
+    );
+    final lastNameController = TextEditingController(
+      text: existing?.lastName ?? '',
+    );
+    final groupIdController = TextEditingController(
+      text: existing?.groupId ?? '',
+    );
+    final tableController = TextEditingController(
+      text: existing?.tableId ?? '',
+    );
     final seatController = TextEditingController(text: existing?.seat ?? '');
     final childAgeController = TextEditingController(
       text: existing?.childAge != null ? '${existing!.childAge}' : '',
@@ -160,7 +174,8 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                 CheckboxListTile(
                   title: const Text('Üblicher Kuchen-Verdächtiger'),
                   value: isCakeSuspect,
-                  onChanged: (v) => setDialogState(() => isCakeSuspect = v ?? false),
+                  onChanged: (v) =>
+                      setDialogState(() => isCakeSuspect = v ?? false),
                 ),
                 CheckboxListTile(
                   title: const Text('Kind (statt Erwachsener)'),
@@ -171,7 +186,9 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                   TextField(
                     controller: childAgeController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Alter des Kindes'),
+                    decoration: const InputDecoration(
+                      labelText: 'Alter des Kindes',
+                    ),
                   ),
               ],
             ),
@@ -197,11 +214,17 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                   firstName: firstNameController.text.trim(),
                   lastName: lastNameController.text.trim(),
                   groupId: groupVal.isEmpty ? null : groupVal,
-                  tableId: tableController.text.trim().isEmpty ? null : tableController.text.trim(),
-                  seat: seatController.text.trim().isEmpty ? null : seatController.text.trim(),
+                  tableId: tableController.text.trim().isEmpty
+                      ? null
+                      : tableController.text.trim(),
+                  seat: seatController.text.trim().isEmpty
+                      ? null
+                      : seatController.text.trim(),
                   isUsualCakeSuspect: isCakeSuspect,
                   isChild: isChild,
-                  childAge: isChild ? int.tryParse(childAgeController.text.trim()) : null,
+                  childAge: isChild
+                      ? int.tryParse(childAgeController.text.trim())
+                      : null,
                   rsvpStatus: existing?.rsvpStatus ?? 'pending',
                   plusOnes: existing?.plusOnes ?? 0,
                   dietaryNotes: existing?.dietaryNotes,
@@ -259,7 +282,10 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(error!, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
               ],
             ),
@@ -279,7 +305,9 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                   if (ctx.mounted) {
                     Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${guests.length} Gäste importiert.')),
+                      SnackBar(
+                        content: Text('${guests.length} Gäste importiert.'),
+                      ),
                     );
                   }
                 } catch (e) {

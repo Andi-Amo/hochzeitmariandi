@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../widgets/home_back_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/guest.dart';
 import '../services/guest_repository.dart';
@@ -101,7 +103,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
         v1[j + 1] = [
           v1[j] + 1,
           v0[j + 1] + 1,
-          v0[j] + cost
+          v0[j] + cost,
         ].reduce((a, b) => a < b ? a : b);
       }
       for (int j = 0; j <= s2.length; j++) {
@@ -159,9 +161,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler bei der Suche: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler bei der Suche: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSearching = false);
@@ -183,8 +185,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
               return ListTile(
                 leading: const Icon(Icons.person),
                 title: Text(g.fullName),
-                subtitle:
-                    g.groupId != null ? Text('Gruppe: ${g.groupId}') : null,
+                subtitle: g.groupId != null
+                    ? Text('Gruppe: ${g.groupId}')
+                    : null,
                 onTap: () async {
                   Navigator.of(ctx).pop();
                   context.read<GuestSession>().identify(g);
@@ -281,9 +284,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Speichern: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler beim Speichern: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -294,19 +297,24 @@ class _RsvpScreenState extends State<RsvpScreen> {
   Widget build(BuildContext context) {
     final activeGuest = context.watch<GuestSession>().guest;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Auf Einladung antworten')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Banner linking to Cake Screen at the top
-            _buildCakeBanner(),
-            const SizedBox(height: 16),
-            activeGuest == null || _groupGuests.isEmpty
-                ? _buildSearchSection()
-                : _buildRsvpFormSection(),
-          ],
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: const HomeBackButton(),
+          title: const Text('Auf Einladung antworten'),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Banner linking to Cake Screen at the top
+              _buildCakeBanner(),
+              const SizedBox(height: 16),
+              activeGuest == null || _groupGuests.isEmpty
+                  ? _buildSearchSection()
+                  : _buildRsvpFormSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -330,7 +338,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
           InkWell(
             onTap: () async {
               // Respects hash-based routing on GitHub Pages (e.g. your-app/#/cakes)
-              final Uri url = Uri.parse('${Uri.base.origin}${Uri.base.path}#/cakes');
+              final Uri url = Uri.parse(
+                '${Uri.base.origin}${Uri.base.path}#/cakes',
+              );
               if (await canLaunchUrl(url)) {
                 await launchUrl(url, webOnlyWindowName: '_blank');
               }
@@ -405,8 +415,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
           const SizedBox(height: 24),
           const Text(
             'Kein genauer Treffer gefunden. Meintest du einen dieser Namen?',
-            style: TextStyle(
-                color: Colors.orange, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           ..._suggestedGuests.map(
@@ -426,7 +435,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
 
   // --- Multi-Guest / Family RSVP Section ---
   Widget _buildRsvpFormSection() {
-    final allSaved = _formStates.values.isNotEmpty &&
+    final allSaved =
+        _formStates.values.isNotEmpty &&
         _formStates.values.every((f) => f.isSaved);
 
     if (allSaved) {
@@ -454,7 +464,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
                 });
               },
               child: const Text('Andere Einladung suchen'),
-            )
+            ),
           ],
         ),
       );
@@ -469,7 +479,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const Text(
-              'Du kannst hier für alle Personen deiner Gruppe antworten:'),
+            'Du kannst hier für alle Personen deiner Gruppe antworten:',
+          ),
           const SizedBox(height: 16),
         ],
         ..._groupGuests.map((guest) => _buildSingleGuestCard(guest)),
@@ -505,15 +516,16 @@ class _RsvpScreenState extends State<RsvpScreen> {
           children: [
             Text(
               '${guest.firstName} ${guest.lastName}',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             SegmentedButton<String>(
               segments: const [
                 ButtonSegment(value: 'attending', label: Text('Ich komme')),
                 ButtonSegment(
-                    value: 'declined', label: Text('Ich kann leider nicht')),
+                  value: 'declined',
+                  label: Text('Ich kann leider nicht'),
+                ),
               ],
               selected: {form.status},
               onSelectionChanged: (s) => setState(() => form.status = s.first),
@@ -530,8 +542,7 @@ class _RsvpScreenState extends State<RsvpScreen> {
                   DropdownMenuItem(value: false, child: Text('Erwachsen')),
                   DropdownMenuItem(value: true, child: Text('Kind')),
                 ],
-                onChanged: (val) =>
-                    setState(() => form.isChild = val ?? false),
+                onChanged: (val) => setState(() => form.isChild = val ?? false),
               ),
               if (form.isChild) ...[
                 const SizedBox(height: 12),
@@ -548,10 +559,9 @@ class _RsvpScreenState extends State<RsvpScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -606,13 +616,15 @@ class _RsvpScreenState extends State<RsvpScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: false, child: Text('Erwachsen')),
+                            value: false,
+                            child: Text('Erwachsen'),
+                          ),
                           DropdownMenuItem(value: true, child: Text('Kind')),
                         ],
                         onChanged: (v) =>
                             setState(() => form.plusOneIsChild = v ?? false),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),

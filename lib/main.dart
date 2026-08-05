@@ -43,4 +43,3 @@ class _RouterApp extends StatelessWidget {
     );
   }
 }
-
