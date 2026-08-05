@@ -22,8 +22,8 @@ class _BackButtonWidgetState extends State<BackButtonWidget> {
       onExit: (_) => setState(() => _hovered = false),
       child: IconButton(
         icon: Icon(_hovered ? Icons.arrow_back : Icons.arrow_back_outlined),
-        tooltip: 'Zurück',
-        onPressed: () => context.pop(),
+        tooltip: 'Zur Startseite',
+        onPressed: () => context.go('/'),
       ),
     );
   }
