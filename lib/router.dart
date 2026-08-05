@@ -5,6 +5,7 @@ import 'screens/admin/admin_guest_list_screen.dart';
 import 'screens/admin/admin_login_screen.dart';
 import 'screens/admin/admin_photo_curation_screen.dart';
 import 'screens/admin/admin_program_overview_screen.dart';
+import 'screens/admin/admin_seating_plan_screen.dart';
 import 'screens/cake_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/photo_gallery_screen.dart';
@@ -45,6 +46,10 @@ GoRouter buildRouter() {
       GoRoute(
         path: '/admin/program',
         builder: (context, state) => const AdminProgramOverviewScreen(),
+      ),
+      GoRoute(
+        path: '/admin/seating',
+        builder: (context, state) => const AdminSeatingPlanScreen(),
       ),
     ],
     redirect: (context, state) {

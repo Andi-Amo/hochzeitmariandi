@@ -15,7 +15,7 @@ class AdminGuestListScreen extends StatefulWidget {
 
 class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
   final GuestRepository _repository = GuestRepository();
-  String _filterRsvp = 'all'; // all, accepted, pending, declined
+  String _filterRsvp = 'all'; // all, attending, pending, declined
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +53,7 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
 
             // Calculate statistics
             final totalGuests = allGuests.length;
-            final accepted = allGuests.where((g) => g.rsvpStatus == 'accepted').length;
+            final accepted = allGuests.where((g) => g.rsvpStatus == 'attending').length;
             final declined = allGuests.where((g) => g.rsvpStatus == 'declined').length;
             final pending = allGuests.where((g) => g.rsvpStatus == 'pending').length;
 
@@ -136,9 +136,9 @@ class _AdminGuestListScreenState extends State<AdminGuestListScreen> {
                           ),
                           FilterChip(
                             label: const Text('Zugesagt'),
-                            selected: _filterRsvp == 'accepted',
+                            selected: _filterRsvp == 'attending',
                             onSelected: (selected) =>
-                                setState(() => _filterRsvp = 'accepted'),
+                                setState(() => _filterRsvp = 'attending'),
                           ),
                           FilterChip(
                             label: const Text('Ausstehend'),

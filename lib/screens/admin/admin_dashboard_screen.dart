@@ -52,6 +52,15 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
             Card(
               child: ListTile(
+                leading: const Icon(Icons.event_seat_outlined),
+                title: const Text('Sitzplan verwalten'),
+                subtitle: const Text('Drag & Drop Sitzplätze, Gruppen-Farbcodierung'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go('/admin/seating'),
+              ),
+            ),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
                 title: const Text('Fotos kuratieren'),
                 subtitle: const Text('Fotos ausblenden oder löschen'),
