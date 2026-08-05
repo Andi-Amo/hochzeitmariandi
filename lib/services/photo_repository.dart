@@ -38,18 +38,52 @@ class PhotoRepository {
     );
   }
 
+  String? _normalizeHashtag(String? hashtag) {
+    final trimmed = hashtag?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+
+    final withoutWhitespace = trimmed.replaceAll(RegExp(r'\s+'), '');
+    final withoutHash = withoutWhitespace.startsWith('#')
+        ? withoutWhitespace.substring(1)
+        : withoutWhitespace;
+    if (withoutHash.isEmpty) return null;
+
+    return '#${withoutHash.toLowerCase()}';
+  }
+
+  List<String> _normalizeHashtags(String? rawHashtags) {
+    final trimmed = rawHashtags?.trim() ?? '';
+    if (trimmed.isEmpty) return const [];
+
+    final parts = trimmed.split(RegExp(r'[\s,;]+'));
+    final normalized = <String>[];
+    final seen = <String>{};
+
+    for (final part in parts) {
+      final hashtag = _normalizeHashtag(part);
+      if (hashtag != null && seen.add(hashtag)) {
+        normalized.add(hashtag);
+      }
+    }
+
+    return normalized;
+  }
+
   Future<void> uploadPhotoBytes({
     required Uint8List bytes,
     required String fileName,
     String? uploaderName,
+    String? hashtagsInput,
   }) async {
     final result = await _cloudinary.uploadBytes(bytes: bytes, fileName: fileName);
+    final hashtags = _normalizeHashtags(hashtagsInput);
 
     final photo = WeddingPhoto(
       id: '',
       url: result.secureUrl,
       storagePath: result.publicId,
       uploaderName: uploaderName,
+      hashtags: hashtags,
     );
     await _collection.add(photo.toMap());
   }

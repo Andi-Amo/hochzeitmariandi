@@ -46,6 +46,50 @@ class AdminPhotoCurationScreen extends StatelessWidget {
                       opacity: photo.hidden ? 0.3 : 1,
                       child: Image.network(photo.url, fit: BoxFit.cover),
                     ),
+                    if (photo.hashtags.isNotEmpty || photo.uploaderName != null)
+                      Positioned(
+                        left: 6,
+                        right: 36,
+                        bottom: 6,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (photo.hashtags.isNotEmpty)
+                                  Text(
+                                    photo.hashtags.join(' '),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                if (photo.uploaderName != null)
+                                  Text(
+                                    photo.uploaderName!,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       top: 2,
                       right: 2,

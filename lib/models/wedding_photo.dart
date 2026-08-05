@@ -7,6 +7,7 @@ class WeddingPhoto {
   final String storagePath;
   final DateTime? uploadedAt;
   final String? uploaderName;
+  final List<String> hashtags;
   final bool hidden;
 
   const WeddingPhoto({
@@ -15,20 +16,31 @@ class WeddingPhoto {
     required this.storagePath,
     this.uploadedAt,
     this.uploaderName,
+    this.hashtags = const [],
     this.hidden = false,
   });
+
+  String? get hashtag => hashtags.isEmpty ? null : hashtags.first;
 
   factory WeddingPhoto.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data() ?? {};
     final ts = data['uploadedAt'];
+    final rawHashtags = data['hashtags'];
+    final legacyHashtag = data['hashtag'] as String?;
+    final hashtags = rawHashtags is List
+        ? rawHashtags.whereType<String>().toList()
+        : legacyHashtag == null || legacyHashtag.isEmpty
+        ? <String>[]
+        : <String>[legacyHashtag];
     return WeddingPhoto(
       id: doc.id,
       url: data['url'] as String? ?? '',
       storagePath: data['storagePath'] as String? ?? '',
       uploadedAt: ts is Timestamp ? ts.toDate() : null,
       uploaderName: data['uploaderName'] as String?,
+      hashtags: hashtags,
       hidden: data['hidden'] as bool? ?? false,
     );
   }
@@ -39,6 +51,8 @@ class WeddingPhoto {
       'storagePath': storagePath,
       'uploadedAt': FieldValue.serverTimestamp(),
       'uploaderName': uploaderName,
+      'hashtag': hashtag,
+      'hashtags': hashtags,
       'hidden': hidden,
     };
   }
