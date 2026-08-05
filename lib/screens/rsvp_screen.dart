@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/guest.dart';
 import '../services/guest_repository.dart';
@@ -313,6 +314,8 @@ class _RsvpScreenState extends State<RsvpScreen> {
               activeGuest == null || _groupGuests.isEmpty
                   ? _buildSearchSection()
                   : _buildRsvpFormSection(),
+              const SizedBox(height: 24),
+              const BackButtonWidget(),
             ],
           ),
         ),

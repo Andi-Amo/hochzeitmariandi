@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 
 class LocationScreen extends StatelessWidget {
   const LocationScreen({super.key});
@@ -55,7 +56,10 @@ class LocationScreen extends StatelessWidget {
               title: '2. Parken am kleinen Kurpark',
               spots: _kurparkParking,
             ),
-             
+            const SizedBox(height: 24),
+            Center(
+              child: const BackButtonWidget(),
+            ),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 
 import '../models/guest.dart';
 import '../services/guest_session.dart';
@@ -53,67 +54,77 @@ class _ProgramSignupScreenState extends State<ProgramSignupScreen> {
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
-          child: guest == null
-              ? SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Möchtest du eine Rede halten, eine Diashow zeigen, oder '
-                        'einen anderen Programmpunkt beitragen? Gib zuerst deinen '
-                        'Namen ein.',
-                      ),
-                      const SizedBox(height: 16),
-                      const GuestNameSearch(),
-                    ],
-                  ),
-                )
-              : _submitted
-              ? const Center(
-                  child: Text(
-                    'Danke für deine Anmeldung! Wir freuen uns darauf. 🎉',
-                  ),
-                )
-              : ListView(
-                  children: [
-                    Text(
-                      'Hallo ${guest.fullName}!',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _type,
-                      decoration: const InputDecoration(
-                        labelText: 'Art des Beitrags',
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'Rede', child: Text('Rede')),
-                        DropdownMenuItem(
-                          value: 'Diashow',
-                          child: Text('Diashow'),
+          child: Column(
+            children: [
+              Expanded(
+                child: guest == null
+                    ? SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Möchtest du eine Rede halten, eine Diashow zeigen, oder '
+                              'einen anderen Programmpunkt beitragen? Gib zuerst deinen '
+                              'Namen ein.',
+                            ),
+                            const SizedBox(height: 16),
+                            const GuestNameSearch(),
+                          ],
                         ),
-                        DropdownMenuItem(
-                          value: 'Sonstiges',
-                          child: Text('Sonstiger Programmpunkt'),
+                      )
+                    : _submitted
+                    ? const Center(
+                        child: Text(
+                          'Danke für deine Anmeldung! Wir freuen uns darauf. 🎉',
                         ),
-                      ],
-                      onChanged: (v) => setState(() => _type = v ?? 'Rede'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _descriptionController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Kurze Beschreibung (was hast du geplant?)',
+                      )
+                    : ListView(
+                        children: [
+                          Text(
+                            'Hallo ${guest.fullName}!',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            initialValue: _type,
+                            decoration: const InputDecoration(
+                              labelText: 'Art des Beitrags',
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'Rede', child: Text('Rede')),
+                              DropdownMenuItem(
+                                value: 'Diashow',
+                                child: Text('Diashow'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Sonstiges',
+                                child: Text('Sonstiger Programmpunkt'),
+                              ),
+                            ],
+                            onChanged: (v) => setState(() => _type = v ?? 'Rede'),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _descriptionController,
+                            maxLines: 4,
+                            decoration: const InputDecoration(
+                              labelText: 'Kurze Beschreibung (was hast du geplant?)',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => _submit(guest),
+                            child: const Text('Anmelden'),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => _submit(guest),
-                      child: const Text('Anmelden'),
-                    ),
-                  ],
-                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: const BackButtonWidget(),
+              ),
+            ],
+          ),
         ),
       ),
     );

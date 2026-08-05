@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/wedding_photo.dart';
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 import '../services/guest_session.dart';
 import '../services/photo_repository.dart';
 
@@ -69,32 +70,43 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             final photos = snapshot.data!;
-            if (photos.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'Noch keine Fotos. Sei die/der Erste und teile einen Schnappschuss!',
-                    textAlign: TextAlign.center,
-                  ),
+            return Column(
+              children: [
+                Expanded(
+                  child: photos.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text(
+                              'Noch keine Fotos. Sei die/der Erste und teile einen Schnappschuss!',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: const EdgeInsets.all(8),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4,
+                            mainAxisSpacing: 4,
+                          ),
+                          itemCount: photos.length,
+                          itemBuilder: (context, index) {
+                            final photo = photos[index];
+                            return GestureDetector(
+                              onTap: () => _showFullPhoto(context, photo),
+                              child: Image.network(photo.url,
+                                  fit: BoxFit.cover),
+                            );
+                          },
+                        ),
                 ),
-              );
-            }
-            return GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: photos.length,
-              itemBuilder: (context, index) {
-                final photo = photos[index];
-                return GestureDetector(
-                  onTap: () => _showFullPhoto(context, photo),
-                  child: Image.network(photo.url, fit: BoxFit.cover),
-                );
-              },
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: const BackButtonWidget(),
+                ),
+              ],
             );
           },
         ),

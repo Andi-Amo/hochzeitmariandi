@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'dart:js' as js;
 
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 
 import '../models/guest.dart';
 import '../services/auth_service.dart';
@@ -60,26 +61,36 @@ class _SeatingPlanScreenState extends State<SeatingPlanScreen> {
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
-          child: !isUnlocked
-              ? _LockedCountdown(
-                  unlockTime: WeddingConfig.seatingPlanUnlockTime,
-                  now: now,
-                )
-              : guest == null
-              ? SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
-                        'Bitte gib deinen Namen ein.',
-                      ),
-                      const SizedBox(height: 16),
-                      const GuestNameSearch(),
-                    ],
-                  ),
-                )
-              : _SeatingPlanBody(currentGuest: guest),
+          child: Column(
+            children: [
+              Expanded(
+                child: !isUnlocked
+                    ? _LockedCountdown(
+                        unlockTime: WeddingConfig.seatingPlanUnlockTime,
+                        now: now,
+                      )
+                    : guest == null
+                    ? SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
+                              'Bitte gib deinen Namen ein.',
+                            ),
+                            const SizedBox(height: 16),
+                            const GuestNameSearch(),
+                          ],
+                        ),
+                      )
+                    : _SeatingPlanBody(currentGuest: guest),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: const BackButtonWidget(),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import '../services/cake_repository.dart';
 import '../services/guest_session.dart';
 import '../widgets/guest_name_search.dart';
 import '../widgets/home_back_button.dart';
+import '../widgets/back_button_widget.dart';
 
 /// Cake section: shows the list/overview of already-planned cakes and a
 /// signup form. Guests flagged as `isUsualCakeSuspect` automatically get a
@@ -160,6 +161,10 @@ class _CakeScreenState extends State<CakeScreen> {
                         .toList(),
                   );
                 },
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: const BackButtonWidget(),
               ),
             ],
           ),
