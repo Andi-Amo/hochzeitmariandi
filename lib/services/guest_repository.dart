@@ -13,16 +13,17 @@ class GuestRepository {
 
   Stream<List<Guest>> watchAllGuests() {
     return _collection.snapshots().map(
-          (snap) => snap.docs.map(Guest.fromFirestore).toList(),
-        );
+      (snap) => snap.docs.map(Guest.fromFirestore).toList(),
+    );
   }
 
   /// Fetches all guests belonging to the same household or family group.
   Future<List<Guest>> fetchGuestsByGroup(String groupId) async {
     if (groupId.trim().isEmpty) return [];
 
-    final querySnapshot =
-        await _collection.where('groupId', isEqualTo: groupId).get();
+    final querySnapshot = await _collection
+        .where('groupId', isEqualTo: groupId)
+        .get();
 
     return querySnapshot.docs.map(Guest.fromFirestore).toList();
   }
@@ -33,13 +34,13 @@ class GuestRepository {
   }
 
   /// Searches for guests matching the query.
-  /// Returns ALL matching guests if multiple exist (e.g. searching "Schmidt" 
+  /// Returns ALL matching guests if multiple exist (e.g. searching "Schmidt"
   /// returns all Schmidts, or searching "Anna" returns all Annas).
   Future<List<Guest>> searchGuests(String query) async {
     final normalizedQuery = query.trim().toLowerCase().replaceAll(
-          RegExp(r'\s+'),
-          ' ',
-        );
+      RegExp(r'\s+'),
+      ' ',
+    );
     if (normalizedQuery.isEmpty) return [];
 
     final allGuests = await fetchAllGuests();
@@ -69,7 +70,7 @@ class GuestRepository {
     return results.isNotEmpty ? results.first : null;
   }
 
-  /// One-time batch script to backfill `groupId` (set to null if missing) 
+  /// One-time batch script to backfill `groupId` (set to null if missing)
   /// across all existing documents in Firestore.
   Future<void> backfillGroupIdToAllGuests() async {
     final snapshot = await _collection.get();
@@ -93,13 +94,20 @@ class GuestRepository {
     bool isChild = false,
     int? childAge,
   }) async {
-    await _collection.doc(guestId).update({
+    final updateData = <String, dynamic>{
       'rsvpStatus': rsvpStatus,
       'plusOnes': plusOnes,
       'dietaryNotes': dietaryNotes,
       'isChild': isChild,
       'childAge': isChild ? childAge : null,
-    });
+    };
+
+    if (rsvpStatus == 'declined') {
+      updateData['tableId'] = null;
+      updateData['seat'] = null;
+    }
+
+    await _collection.doc(guestId).update(updateData);
   }
 
   /// Creates and saves a new +1 companion directly linked to a primary guest's group.

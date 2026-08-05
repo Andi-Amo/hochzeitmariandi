@@ -156,7 +156,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
             final unseatedAttendingGuests = <Guest>[];
 
             for (final guest in allGuests) {
-              if (_hasValidSeatAssignment(guest)) {
+              if (guest.rsvpStatus == 'attending' && _hasValidSeatAssignment(guest)) {
                 guestsByTable[guest.tableId!]!.add(guest);
               } else if (guest.rsvpStatus == 'attending') {
                 unseatedAttendingGuests.add(guest);

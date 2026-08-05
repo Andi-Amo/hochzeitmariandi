@@ -180,7 +180,9 @@ class _SeatingPlanBody extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final guests = snapshot.data!;
+        final guests = snapshot.data!
+            .where((g) => g.rsvpStatus == 'attending')
+            .toList();
         final Map<String, List<Guest>> byTable = {};
         for (final g in guests) {
           final table = g.tableId ?? 'Nicht zugeordnet';
