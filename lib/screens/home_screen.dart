@@ -29,11 +29,16 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             const IosInstallHint(),
-            Image.asset(
-              'images/paar.jpg',
-              width: double.infinity,
-              height: 750,
-              fit: BoxFit.contain,
+            AspectRatio(
+              // Matches the actual paar.jpg aspect ratio (1024×682) so the
+              // image fills its box exactly, without top/bottom letterboxing
+              // from a fixed height that doesn't match the image's shape.
+              aspectRatio: 1024 / 682,
+              child: Image.asset(
+                'images/paar.jpg',
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             Card(
               child: Padding(
