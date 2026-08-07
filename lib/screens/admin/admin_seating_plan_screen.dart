@@ -475,7 +475,7 @@ class _TableSeatingUI extends StatelessWidget {
                               style: TextStyle(
                                 color: Colors.brown.shade700,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 20,
                               ),
                             ),
                           ),
@@ -570,7 +570,7 @@ class _SeatDropTarget extends StatelessWidget {
                   child: Text(
                     seatNumber.toString(),
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey.shade400,
                     ),
@@ -632,7 +632,7 @@ class _ChairCard extends StatelessWidget {
               Text(
                 guest.firstName.split(' ').first,
                 style: const TextStyle(
-                  fontSize: 7,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   height: 1.0,
                 ),
@@ -643,7 +643,7 @@ class _ChairCard extends StatelessWidget {
               Text(
                 guest.lastName,
                 style: TextStyle(
-                  fontSize: 7,
+                  fontSize: 10,
                   color: groupColor,
                   fontWeight: FontWeight.w600,
                   height: 1.0,
@@ -801,7 +801,7 @@ class _MoveGuestDialogState extends State<_MoveGuestDialog> {
                         style: TextStyle(
                           color: Colors.orange.shade700,
                           fontWeight: FontWeight.w500,
-                          fontSize: 13,
+                          fontSize: 16,
                         ),
                       ),
                     ),
