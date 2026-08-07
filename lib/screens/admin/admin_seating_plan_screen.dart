@@ -193,7 +193,8 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
             final unseatedAttendingGuests = <Guest>[];
 
             for (final guest in allGuests) {
-              if (guest.rsvpStatus == 'attending' && _hasValidSeatAssignment(guest)) {
+              if (guest.rsvpStatus == 'attending' &&
+                  _hasValidSeatAssignment(guest)) {
                 guestsByTable[guest.tableId!]!.add(guest);
               } else if (guest.rsvpStatus == 'attending') {
                 unseatedAttendingGuests.add(guest);
@@ -223,7 +224,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '10 Tische à 10 Plätze (2 Reihen × 5 Stühle) • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
+                      '10 Tische à 10 Plätze (3 lang, 2 schmal) • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -400,6 +401,20 @@ class _TableSeatingUI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final seats = _buildSeats();
+    // Seat layout around the table:
+    //   1  2  3      ← top long side
+    // 4        5     ← left / right narrow ends
+    // 6        7
+    //   8  9  10     ← bottom long side
+
+    Widget seatTarget(int index) => _SeatDropTarget(
+      guest: seats[index],
+      seatNumber: index + 1,
+      tableNumber: tableNumber,
+      groupColor: _getGroupColor(seats[index]),
+      onSeatDrop: onSeatDrop,
+      onGuestTap: onGuestTap,
+    );
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -418,58 +433,75 @@ class _TableSeatingUI extends StatelessWidget {
             Center(
               child: Column(
                 children: [
+                  // Top long side: seats 1–3
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (var i = 0; i < 5; i++)
+                      for (var i = 0; i < 3; i++)
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: _SeatDropTarget(
-                            guest: seats[i],
-                            seatNumber: i + 1,
-                            tableNumber: tableNumber,
-                            groupColor: _getGroupColor(seats[i]),
-                            onSeatDrop: onSeatDrop,
-                            onGuestTap: onGuestTap,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: seatTarget(i),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: 300,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.brown.shade100,
-                      border: Border.all(color: Colors.brown, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Tisch $tableNumber',
-                        style: TextStyle(
-                          color: Colors.brown.shade700,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  const SizedBox(height: 10),
+                  // Middle row: narrow ends + table body
+                  IntrinsicHeight(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Left narrow end: seats 4–5
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            seatTarget(3),
+                            const SizedBox(height: 8),
+                            seatTarget(4),
+                          ],
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        // Table rectangle
+                        Container(
+                          width: 220,
+                          decoration: BoxDecoration(
+                            color: Colors.brown.shade100,
+                            border: Border.all(color: Colors.brown, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Tisch $tableNumber',
+                              style: TextStyle(
+                                color: Colors.brown.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Right narrow end: seats 6–7
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            seatTarget(5),
+                            const SizedBox(height: 8),
+                            seatTarget(6),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
+                  // Bottom long side: seats 8–10
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (var i = 5; i < _seatsPerTable; i++)
+                      for (var i = 7; i < 10; i++)
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: _SeatDropTarget(
-                            guest: seats[i],
-                            seatNumber: i + 1,
-                            tableNumber: tableNumber,
-                            groupColor: _getGroupColor(seats[i]),
-                            onSeatDrop: onSeatDrop,
-                            onGuestTap: onGuestTap,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: seatTarget(i),
                         ),
                     ],
                   ),
@@ -575,11 +607,7 @@ class _ChairCard extends StatelessWidget {
   final Color groupColor;
   final VoidCallback? onTap;
 
-  const _ChairCard({
-    required this.guest,
-    required this.groupColor,
-    this.onTap,
-  });
+  const _ChairCard({required this.guest, required this.groupColor, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -700,13 +728,15 @@ class _MoveGuestDialogState extends State<_MoveGuestDialog> {
           children: [
             Text(
               widget.guest.fullName,
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               'Aktuell: ${_currentLocation()}',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.outline),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField<String?>(
@@ -789,9 +819,7 @@ class _MoveGuestDialogState extends State<_MoveGuestDialog> {
         ),
         FilledButton(
           onPressed: _canConfirm ? _confirm : null,
-          child: Text(
-            _selectedTable == null ? 'Auf Ungesetzt' : 'Verschieben',
-          ),
+          child: Text(_selectedTable == null ? 'Auf Ungesetzt' : 'Verschieben'),
         ),
       ],
     );
