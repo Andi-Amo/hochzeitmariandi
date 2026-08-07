@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:js' as js;
+import '../utils/js_interop.dart';
 
 class HomeBackButton extends StatefulWidget {
   const HomeBackButton({super.key});
@@ -14,7 +14,7 @@ class _HomeBackButtonState extends State<HomeBackButton> {
 
   void _playMusic() {
     try {
-      js.context.callMethod('playAudio', []);
+      callJsMethod('playAudio', []);
     } catch (e) {
       print('Audio playback error: $e');
     }
@@ -22,7 +22,7 @@ class _HomeBackButtonState extends State<HomeBackButton> {
 
   void _stopMusic() {
     try {
-      js.context.callMethod('stopAudio', []);
+      callJsMethod('stopAudio', []);
     } catch (e) {
       print('Audio stop error: $e');
     }

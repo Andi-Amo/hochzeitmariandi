@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:js' as js;
+import '../utils/js_interop.dart';
 
 import '../widgets/home_back_button.dart';
 import '../widgets/back_button_widget.dart';
@@ -122,7 +122,7 @@ class _LockedCountdownState extends State<_LockedCountdown> {
 
   void _playCountdownSound() {
     try {
-      js.context.callMethod('playCountdownSoundLoop', []);
+      callJsMethod('playCountdownSoundLoop', []);
     } catch (e) {
       print('Countdown sound error: $e');
     }
@@ -130,7 +130,7 @@ class _LockedCountdownState extends State<_LockedCountdown> {
 
   void _stopCountdownSound() {
     try {
-      js.context.callMethod('stopCountdownSound', []);
+      callJsMethod('stopCountdownSound', []);
     } catch (e) {
       print('Countdown sound stop error: $e');
     }
