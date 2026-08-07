@@ -105,6 +105,12 @@ class HomeScreen extends StatelessWidget {
               subtitle: 'Location der Trauung & Feier und Parkmöglichkeiten.',
               onTap: () => context.go('/location'),
             ),
+            _NavCard(
+              icon: Icons.hotel_outlined,
+              title: 'Hotels',
+              subtitle: 'Übernachtungsmöglichkeiten in der Nähe.',
+              onTap: () => context.go('/hotel'),
+            ),
             const Divider(height: 32),
             _NavCard(
               icon: Icons.android,

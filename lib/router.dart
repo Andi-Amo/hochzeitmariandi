@@ -11,6 +11,7 @@ import 'screens/home_screen.dart';
 import 'screens/photo_gallery_screen.dart';
 import 'screens/program_signup_screen.dart';
 import 'screens/rsvp_screen.dart';
+import 'screens/hotel_screen.dart';
 import 'screens/location_screen.dart';
 import 'screens/seating_plan_screen.dart';
 import 'services/auth_service.dart';
@@ -31,6 +32,7 @@ GoRouter buildRouter() {
       GoRoute(path: '/admin', builder: (context, state) => const AdminLoginScreen()),
       GoRoute(path: '/seating', builder: (context, state) => const SeatingPlanScreen()),
       GoRoute(path: '/location', builder: (context, state) => const LocationScreen()),
+      GoRoute(path: '/hotel', builder: (context, state) => const HotelScreen()),
       GoRoute(
         path: '/admin/dashboard',
         builder: (context, state) => const AdminDashboardScreen(),

@@ -7,6 +7,9 @@ import '../../widgets/home_back_button.dart';
 const int _tableCount = 10;
 const int _seatsPerTable = 10;
 
+// Callback type used to show the move-guest dialog from any guest chip.
+typedef _OnGuestTap = void Function(Guest guest);
+
 /// Admin seating plan with drag & drop between chairs and an unseated pool.
 class AdminSeatingPlanScreen extends StatefulWidget {
   const AdminSeatingPlanScreen({super.key});
@@ -132,6 +135,40 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
     await _updateGuestSeat(guest, null, null);
   }
 
+  void _showMoveDialog(
+    BuildContext context,
+    Guest guest,
+    Map<String, List<Guest>> guestsByTable,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _MoveGuestDialog(
+        guest: guest,
+        guestsByTable: guestsByTable,
+        onMove: (targetTableId, targetSeat) async {
+          if (targetTableId == null) {
+            await _moveGuestToUnseated(guest);
+          } else {
+            final tableGuests = guestsByTable[targetTableId] ?? [];
+            Guest? guestAtTarget;
+            for (final g in tableGuests) {
+              if (g.seat == targetSeat.toString() && g.id != guest.id) {
+                guestAtTarget = g;
+                break;
+              }
+            }
+            await _moveGuestToSeat(
+              draggedGuest: guest,
+              targetTableNumber: int.parse(targetTableId),
+              targetSeatNumber: targetSeat!,
+              guestAtTargetSeat: guestAtTarget,
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SelectionArea(
@@ -176,6 +213,9 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
               _getGroupColor(groupId, groupNumber++);
             }
 
+            void onGuestTap(Guest guest) =>
+                _showMoveDialog(context, guest, guestsByTable);
+
             return SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 24),
               child: Column(
@@ -183,7 +223,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '10 Tische à 10 Plätze (2 Reihen × 5 Stühle) • Ziehen zum Verschieben oder Tauschen',
+                      '10 Tische à 10 Plätze (2 Reihen × 5 Stühle) • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -192,6 +232,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                     guests: unseatedAttendingGuests,
                     groupColors: _groupColors,
                     onGuestDropped: _moveGuestToUnseated,
+                    onGuestTap: onGuestTap,
                   ),
                   for (var tableNum = 1; tableNum <= _tableCount; tableNum++)
                     _TableSeatingUI(
@@ -199,6 +240,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                       guests: guestsByTable['$tableNum']!,
                       groupColors: _groupColors,
                       onSeatDrop: _moveGuestToSeat,
+                      onGuestTap: onGuestTap,
                     ),
                 ],
               ),
@@ -214,11 +256,13 @@ class _UnseatedGuestsPanel extends StatelessWidget {
   final List<Guest> guests;
   final Map<String, Color> groupColors;
   final Future<void> Function(Guest guest) onGuestDropped;
+  final _OnGuestTap onGuestTap;
 
   const _UnseatedGuestsPanel({
     required this.guests,
     required this.groupColors,
     required this.onGuestDropped,
+    required this.onGuestTap,
   });
 
   Color _getGroupColor(Guest guest) {
@@ -300,6 +344,7 @@ class _UnseatedGuestsPanel extends StatelessWidget {
                                   child: _ChairCard(
                                     guest: guest,
                                     groupColor: _getGroupColor(guest),
+                                    onTap: () => onGuestTap(guest),
                                   ),
                                 ),
                               ),
@@ -319,6 +364,7 @@ class _TableSeatingUI extends StatelessWidget {
   final int tableNumber;
   final List<Guest> guests;
   final Map<String, Color> groupColors;
+  final _OnGuestTap onGuestTap;
   final Future<void> Function({
     required Guest draggedGuest,
     required int targetTableNumber,
@@ -332,6 +378,7 @@ class _TableSeatingUI extends StatelessWidget {
     required this.guests,
     required this.groupColors,
     required this.onSeatDrop,
+    required this.onGuestTap,
   });
 
   List<Guest?> _buildSeats() {
@@ -383,6 +430,7 @@ class _TableSeatingUI extends StatelessWidget {
                             tableNumber: tableNumber,
                             groupColor: _getGroupColor(seats[i]),
                             onSeatDrop: onSeatDrop,
+                            onGuestTap: onGuestTap,
                           ),
                         ),
                     ],
@@ -420,6 +468,7 @@ class _TableSeatingUI extends StatelessWidget {
                             tableNumber: tableNumber,
                             groupColor: _getGroupColor(seats[i]),
                             onSeatDrop: onSeatDrop,
+                            onGuestTap: onGuestTap,
                           ),
                         ),
                     ],
@@ -439,6 +488,7 @@ class _SeatDropTarget extends StatelessWidget {
   final int seatNumber;
   final int tableNumber;
   final Color groupColor;
+  final _OnGuestTap onGuestTap;
   final Future<void> Function({
     required Guest draggedGuest,
     required int targetTableNumber,
@@ -453,6 +503,7 @@ class _SeatDropTarget extends StatelessWidget {
     required this.tableNumber,
     required this.groupColor,
     required this.onSeatDrop,
+    required this.onGuestTap,
   });
 
   @override
@@ -507,7 +558,11 @@ class _SeatDropTarget extends StatelessWidget {
                     opacity: 0.3,
                     child: _ChairCard(guest: guest!, groupColor: groupColor),
                   ),
-                  child: _ChairCard(guest: guest!, groupColor: groupColor),
+                  child: _ChairCard(
+                    guest: guest!,
+                    groupColor: groupColor,
+                    onTap: () => onGuestTap(guest!),
+                  ),
                 ),
         );
       },
@@ -518,52 +573,227 @@ class _SeatDropTarget extends StatelessWidget {
 class _ChairCard extends StatelessWidget {
   final Guest guest;
   final Color groupColor;
+  final VoidCallback? onTap;
 
-  const _ChairCard({required this.guest, required this.groupColor});
+  const _ChairCard({
+    required this.guest,
+    required this.groupColor,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: groupColor.withValues(alpha: 0.35),
-        border: Border.all(color: groupColor, width: 2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              guest.isChild ? Icons.child_care : Icons.person,
-              size: 18,
-              color: groupColor,
-            ),
-            Text(
-              guest.firstName.split(' ').first,
-              style: const TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                height: 0.9,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              guest.groupId ?? '-',
-              style: TextStyle(
-                fontSize: 7,
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: groupColor.withValues(alpha: 0.35),
+          border: Border.all(color: groupColor, width: 2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                guest.isChild ? Icons.child_care : Icons.person,
+                size: 16,
                 color: groupColor,
-                fontWeight: FontWeight.w600,
-                height: 0.9,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              Text(
+                guest.firstName.split(' ').first,
+                style: const TextStyle(
+                  fontSize: 7,
+                  fontWeight: FontWeight.bold,
+                  height: 1.0,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                guest.lastName,
+                style: TextStyle(
+                  fontSize: 7,
+                  color: groupColor,
+                  fontWeight: FontWeight.w600,
+                  height: 1.0,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Move-guest dialog
+// ---------------------------------------------------------------------------
+
+class _MoveGuestDialog extends StatefulWidget {
+  final Guest guest;
+  final Map<String, List<Guest>> guestsByTable;
+  final Future<void> Function(String? tableId, int? seat) onMove;
+
+  const _MoveGuestDialog({
+    required this.guest,
+    required this.guestsByTable,
+    required this.onMove,
+  });
+
+  @override
+  State<_MoveGuestDialog> createState() => _MoveGuestDialogState();
+}
+
+class _MoveGuestDialogState extends State<_MoveGuestDialog> {
+  // null means "Ungesetzt"; '1'..'10' means a table
+  String? _selectedTable;
+  int? _selectedSeat;
+  bool _saving = false;
+
+  String _currentLocation() {
+    final g = widget.guest;
+    final hasTable = g.tableId != null && g.tableId!.isNotEmpty;
+    final hasSeat = g.seat != null && g.seat!.isNotEmpty;
+    if (hasTable && hasSeat) return 'Tisch ${g.tableId}, Platz ${g.seat}';
+    return 'Ungesetzt';
+  }
+
+  Guest? _occupantAt(String tableId, int seatNumber) {
+    final tableGuests = widget.guestsByTable[tableId] ?? [];
+    for (final g in tableGuests) {
+      if (g.seat == seatNumber.toString() && g.id != widget.guest.id) return g;
+    }
+    return null;
+  }
+
+  bool get _canConfirm =>
+      !_saving && (_selectedTable == null || _selectedSeat != null);
+
+  Future<void> _confirm() async {
+    if (!_canConfirm) return;
+    setState(() => _saving = true);
+    Navigator.pop(context);
+    await widget.onMove(_selectedTable, _selectedSeat);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    Guest? swapTarget;
+    if (_selectedTable != null && _selectedSeat != null) {
+      swapTarget = _occupantAt(_selectedTable!, _selectedSeat!);
+    }
+
+    return AlertDialog(
+      title: const Text('Gast verschieben'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.guest.fullName,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
+            Text(
+              'Aktuell: ${_currentLocation()}',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String?>(
+              decoration: const InputDecoration(
+                labelText: 'Ziel-Tisch',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              value: _selectedTable,
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Ungesetzt'),
+                ),
+                for (var i = 1; i <= _tableCount; i++)
+                  DropdownMenuItem<String?>(
+                    value: '$i',
+                    child: Text('Tisch $i'),
+                  ),
+              ],
+              onChanged: (value) => setState(() {
+                _selectedTable = value;
+                _selectedSeat = null;
+              }),
+            ),
+            if (_selectedTable != null) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                decoration: const InputDecoration(
+                  labelText: 'Platz',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                value: _selectedSeat,
+                items: [
+                  for (var i = 1; i <= _seatsPerTable; i++)
+                    DropdownMenuItem<int>(
+                      value: i,
+                      child: Text(() {
+                        final occ = _occupantAt(_selectedTable!, i);
+                        return occ != null
+                            ? 'Platz $i  →  ${occ.fullName}'
+                            : 'Platz $i  (frei)';
+                      }()),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _selectedSeat = v),
+              ),
+              if (swapTarget != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.swap_horiz,
+                      size: 16,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Tauscht Platz mit ${swapTarget.fullName}',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _canConfirm ? _confirm : null,
+          child: Text(
+            _selectedTable == null ? 'Auf Ungesetzt' : 'Verschieben',
+          ),
+        ),
+      ],
     );
   }
 }
