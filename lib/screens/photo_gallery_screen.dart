@@ -8,8 +8,9 @@ import '../services/photo_repository.dart';
 import '../widgets/back_button_widget.dart';
 import '../widgets/home_back_button.dart';
 
-/// Live photo gallery: guests can upload photos (single, multiple, or camera)
-/// and browse them grouped by hashtag.
+/// Live photo gallery: guests can upload photos (camera or gallery, one or
+/// several at once) and browse them grouped by hashtag. Hashtags can also be
+/// added or edited afterwards from the full-screen photo view.
 class PhotoGalleryScreen extends StatefulWidget {
   const PhotoGalleryScreen({super.key});
 
@@ -36,17 +37,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
     await _uploadFiles([file]);
   }
 
-  Future<void> _pickAndUploadSingleFromGallery() async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (file == null || !mounted) return;
-
-    await _uploadFiles([file]);
-  }
-
-  Future<void> _pickAndUploadMultipleFromGallery() async {
+  Future<void> _pickAndUploadFromGallery() async {
     final files = await _picker.pickMultiImage(imageQuality: 85);
     if (files.isEmpty || !mounted) return;
 
@@ -95,16 +86,22 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
     }
   }
 
-  Future<String?> _showHashtagDialog({required int photoCount}) async {
-    final controller = TextEditingController();
+  Future<String?> _showHashtagDialog({
+    required int photoCount,
+    String initialText = '',
+    String? titleOverride,
+    String confirmLabel = 'Hochladen',
+  }) async {
+    final controller = TextEditingController(text: initialText);
 
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-          photoCount > 1
-              ? '$photoCount Fotos hochladen'
-              : 'Foto hochladen',
+          titleOverride ??
+              (photoCount > 1
+                  ? '$photoCount Fotos hochladen'
+                  : 'Foto hochladen'),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -131,7 +128,7 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Hochladen'),
+            child: Text(confirmLabel),
           ),
         ],
       ),
@@ -139,6 +136,32 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
 
     controller.dispose();
     return result;
+  }
+
+  Future<void> _editHashtags(WeddingPhoto photo) async {
+    final initialText = photo.hashtags.join(' ');
+    final result = await _showHashtagDialog(
+      photoCount: 1,
+      initialText: initialText,
+      titleOverride: 'Hashtag bearbeiten',
+      confirmLabel: 'Speichern',
+    );
+    if (result == null || !mounted) return;
+
+    try {
+      await _repository.updateHashtags(photo.id, result);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Hashtag aktualisiert.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Speichern: $e')),
+        );
+      }
+    }
   }
 
   List<_PhotoCluster> _buildClusters(List<WeddingPhoto> photos) {
@@ -320,18 +343,11 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Ein Foto aus Galerie wählen'),
+              title: const Text('Fotos aus Galerie wählen'),
+              subtitle: const Text('Ein oder mehrere Fotos auswählen'),
               onTap: () {
                 Navigator.of(ctx).pop();
-                _pickAndUploadSingleFromGallery();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.collections),
-              title: const Text('Mehrere Fotos aus Galerie wählen'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _pickAndUploadMultipleFromGallery();
+                _pickAndUploadFromGallery();
               },
             ),
           ],
@@ -353,23 +369,43 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
                 child: Image.network(photo.url, fit: BoxFit.contain),
               ),
             ),
-            if (photo.hashtags.isNotEmpty || photo.uploaderName != null)
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final hashtag in photo.hashtags)
-                      Chip(label: Text(hashtag)),
-                    if (photo.uploaderName != null)
-                      Chip(
-                        avatar: const Icon(Icons.person, size: 18),
-                        label: Text(photo.uploaderName!),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (photo.hashtags.isNotEmpty || photo.uploaderName != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final hashtag in photo.hashtags)
+                            Chip(label: Text(hashtag)),
+                          if (photo.uploaderName != null)
+                            Chip(
+                              avatar: const Icon(Icons.person, size: 18),
+                              label: Text(photo.uploaderName!),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _editHashtags(photo);
+                    },
+                    icon: const Icon(Icons.tag),
+                    label: Text(
+                      photo.hashtags.isEmpty
+                          ? 'Hashtag hinzufügen'
+                          : 'Hashtag bearbeiten',
+                    ),
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),

@@ -36,14 +36,59 @@
   <script>
     let audioElement;
     let countdownAudioElement;
-    
-    function playAudio() {
+    let audioUnlocked = false;
+
+    function getAudioElement() {
       if (!audioElement) {
         audioElement = new Audio('assets/audio/take_me_home.ogg');
-        audioElement.crossOrigin = 'anonymous';
       }
-      audioElement.currentTime = 0;
-      audioElement.play().catch(err => console.log('Audio play error:', err));
+      return audioElement;
+    }
+
+    function getCountdownAudioElement() {
+      if (!countdownAudioElement) {
+        countdownAudioElement = new Audio('assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
+        countdownAudioElement.loop = true;
+      }
+      return countdownAudioElement;
+    }
+
+    // Browsers block audio playback with sound until the page has received a
+    // genuine user gesture (click/tap/keydown). Hovering the home button does
+    // NOT count as such a gesture, so on a real deployment the music would
+    // silently fail to play. To fix this while keeping the hover-triggered
+    // "easter egg" behaviour, we prime (play + immediately pause) both audio
+    // elements on the very first real interaction with the page. Once the
+    // browser has granted the page permission to play audio, later play()
+    // calls triggered by hover no longer need a fresh gesture.
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+
+      const unlockOne = (el) => {
+        const playPromise = el.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise
+            .then(() => {
+              el.pause();
+              el.currentTime = 0;
+            })
+            .catch(() => {});
+        }
+      };
+
+      unlockOne(getAudioElement());
+      unlockOne(getCountdownAudioElement());
+    }
+
+    ['pointerdown', 'touchstart', 'keydown'].forEach((eventName) => {
+      document.addEventListener(eventName, unlockAudio, { once: true });
+    });
+
+    function playAudio() {
+      const el = getAudioElement();
+      el.currentTime = 0;
+      el.play().catch(err => console.log('Audio play error:', err));
     }
     
     function stopAudio() {
@@ -54,13 +99,9 @@
     }
     
     function playCountdownSoundLoop() {
-      if (!countdownAudioElement) {
-        countdownAudioElement = new Audio('assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
-        countdownAudioElement.crossOrigin = 'anonymous';
-        countdownAudioElement.loop = true;
-      }
-      if (countdownAudioElement.paused) {
-        countdownAudioElement.play().catch(err => console.log('Countdown sound error:', err));
+      const el = getCountdownAudioElement();
+      if (el.paused) {
+        el.play().catch(err => console.log('Countdown sound error:', err));
       }
     }
     

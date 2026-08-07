@@ -37,7 +37,7 @@ class HotelScreen extends StatelessWidget {
               address: 'König-Karl-Str. 2, 70372 Stuttgart-Bad Cannstatt',
               mapsUrl: 'https://maps.app.goo.gl/XzU9mABPEhiEdJQM8',
               bookingUrl:
-                  'https://www.premierinn.com/de/de/hotels/germany/stuttgart/stuttgart-bad-cannstatt.html',
+                  'https://www.premierinn.com/de/de/hotels/deutschland/baden-wuerttemberg/stuttgart/stuttgart-bad-cannstatt.html?cid=GLBC_STUBAD',
             ),
             const SizedBox(height: 12),
             const _HotelCard(

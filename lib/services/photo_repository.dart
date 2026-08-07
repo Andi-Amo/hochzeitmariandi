@@ -92,6 +92,16 @@ class PhotoRepository {
     await _collection.doc(photoId).update({'hidden': hidden});
   }
 
+  /// Updates the hashtags of an already-uploaded photo (raw, free-form input
+  /// such as "#party #standesamt" or "party, trauung").
+  Future<void> updateHashtags(String photoId, String? hashtagsInput) async {
+    final hashtags = _normalizeHashtags(hashtagsInput);
+    await _collection.doc(photoId).update({
+      'hashtag': hashtags.isEmpty ? null : hashtags.first,
+      'hashtags': hashtags,
+    });
+  }
+
   Future<void> deletePhoto(WeddingPhoto photo) async {
     // Only removes the Firestore entry; see class doc comment above.
     await _collection.doc(photo.id).delete();
