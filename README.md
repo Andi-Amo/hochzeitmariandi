@@ -137,17 +137,20 @@ Repo umbenannt wird oder eine eigene Domain genutzt wird).
 ### Android-App (APK-Download)
 
 Der Workflow [.github/workflows/build-android.yml](.github/workflows/build-android.yml)
-baut bei jedem Push eine Release-APK als Workflow-Artefakt. Um sie als
-öffentlich verlinkbaren Download bereitzustellen, einen Git-Tag pushen:
+baut bei jedem Push automatisch eine Release-APK und veröffentlicht sie als
+GitHub Release unter `https://github.com/Andi-Amo/wedapp/releases/latest` –
+genau dieser Link ist bereits als "Android-App herunterladen"-Button auf der
+Startseite verlinkt. Kein manuelles Taggen nötig; jeder Push auf
+`main`/`Weddapp` aktualisiert das `latest`-Release mit der neuesten APK.
+
+Optional kann zusätzlich ein Versions-Tag gepusht werden, um ein eigenes,
+dauerhaft benanntes Release (z. B. für Changelogs) zu erzeugen:
 
 ```powershell
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Das veröffentlicht die APK automatisch als Asset unter
-`https://github.com/Andi-Amo/wedapp/releases/latest` – genau dieser Link ist
-bereits als "Android-App herunterladen"-Button auf der Startseite verlinkt.
 Gäste müssen beim Installieren "Installation aus unbekannten Quellen
 erlauben" bestätigen (normaler Vorgang bei APKs außerhalb des Play Stores).
 
