@@ -4,8 +4,13 @@ import '../../models/guest.dart';
 import '../../services/guest_repository.dart';
 import '../../widgets/home_back_button.dart';
 
-const int _tableCount = 10;
-const int _seatsPerTable = 10;
+const int _tableCount = 11;
+const int _defaultSeatsPerTable = 10;
+const int _specialTableSeats = 8;
+
+int _seatCountForTable(int tableNumber) {
+  return tableNumber == 11 ? _specialTableSeats : _defaultSeatsPerTable;
+}
 
 // Callback type used to show the move-guest dialog from any guest chip.
 typedef _OnGuestTap = void Function(Guest guest);
@@ -59,15 +64,20 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
         tableNumber <= _tableCount;
   }
 
-  bool _isValidSeat(String? seat) {
+  bool _isValidSeat(String? seat, int tableNumber) {
     final seatNumber = int.tryParse(seat ?? '');
     return seatNumber != null &&
         seatNumber >= 1 &&
-        seatNumber <= _seatsPerTable;
+        seatNumber <= _seatCountForTable(tableNumber);
   }
 
   bool _hasValidSeatAssignment(Guest guest) {
-    return _isValidTableId(guest.tableId) && _isValidSeat(guest.seat);
+    if (guest.tableId == null || guest.tableId!.isEmpty) return false;
+
+    final tableNumber = int.tryParse(guest.tableId!);
+    if (tableNumber == null || !_isValidTableId(guest.tableId)) return false;
+
+    return _isValidSeat(guest.seat, tableNumber);
   }
 
   Future<void> _updateGuestSeat(
@@ -224,7 +234,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '10 Tische à 10 Plätze (3 lang, 2 schmal) • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
+                      '11 Tische (10 × 10 Plätze, 1 × 8 Plätze) • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -383,10 +393,11 @@ class _TableSeatingUI extends StatelessWidget {
   });
 
   List<Guest?> _buildSeats() {
-    final seats = List<Guest?>.filled(_seatsPerTable, null);
+    final seatCount = _seatCountForTable(tableNumber);
+    final seats = List<Guest?>.filled(seatCount, null);
     for (final guest in guests) {
       final seatIndex = int.tryParse(guest.seat ?? '');
-      if (seatIndex != null && seatIndex >= 1 && seatIndex <= _seatsPerTable) {
+      if (seatIndex != null && seatIndex >= 1 && seatIndex <= seatCount) {
         seats[seatIndex - 1] = guest;
       }
     }
@@ -401,11 +412,13 @@ class _TableSeatingUI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final seats = _buildSeats();
+    final seatCount = seats.length;
     // Seat layout around the table:
     //   1  2  3      ← top long side
     // 4        5     ← left / right narrow ends
     // 6        7
     //   8  9  10     ← bottom long side
+    // For table 11, the layout is shortened to 8 seats.
 
     Widget seatTarget(int index) => _SeatDropTarget(
       guest: seats[index],
@@ -437,7 +450,7 @@ class _TableSeatingUI extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      for (var i = 0; i < 3; i++)
+                      for (var i = 0; i < 3 && i < seatCount; i++)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: seatTarget(i),
@@ -455,9 +468,11 @@ class _TableSeatingUI extends StatelessWidget {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            seatTarget(3),
-                            const SizedBox(height: 8),
-                            seatTarget(4),
+                            if (seatCount >= 4) seatTarget(3),
+                            if (seatCount >= 5) ...[
+                              const SizedBox(height: 8),
+                              seatTarget(4),
+                            ],
                           ],
                         ),
                         const SizedBox(width: 10),
@@ -485,26 +500,29 @@ class _TableSeatingUI extends StatelessWidget {
                         Column(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            seatTarget(5),
-                            const SizedBox(height: 8),
-                            seatTarget(6),
+                            if (seatCount >= 6) seatTarget(5),
+                            if (seatCount >= 7) ...[
+                              const SizedBox(height: 8),
+                              seatTarget(6),
+                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Bottom long side: seats 8–10
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (var i = 7; i < 10; i++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: seatTarget(i),
-                        ),
-                    ],
-                  ),
+                  // Bottom long side: seats 8–10 (or seat 8 for table 11)
+                  if (seatCount > 7)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (var i = 7; i < seatCount; i++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: seatTarget(i),
+                          ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -679,7 +697,7 @@ class _MoveGuestDialog extends StatefulWidget {
 }
 
 class _MoveGuestDialogState extends State<_MoveGuestDialog> {
-  // null means "Ungesetzt"; '1'..'10' means a table
+  // null means "Ungesetzt"; '1'..'11' means a table
   String? _selectedTable;
   int? _selectedSeat;
   bool _saving = false;
@@ -772,7 +790,7 @@ class _MoveGuestDialogState extends State<_MoveGuestDialog> {
                 ),
                 value: _selectedSeat,
                 items: [
-                  for (var i = 1; i <= _seatsPerTable; i++)
+                  for (var i = 1; i <= _seatCountForTable(int.parse(_selectedTable!)); i++)
                     DropdownMenuItem<int>(
                       value: i,
                       child: Text(() {
