@@ -40,14 +40,17 @@
 
     function getAudioElement() {
       if (!audioElement) {
-        audioElement = new Audio('assets/audio/take_me_home.ogg');
+        // Flutter web serves pubspec-declared assets under an extra
+        // "assets/" prefix, so a pubspec path of "assets/audio/x.ogg" ends
+        // up at the URL "assets/assets/audio/x.ogg" (double "assets/").
+        audioElement = new Audio('assets/assets/audio/take_me_home.ogg');
       }
       return audioElement;
     }
 
     function getCountdownAudioElement() {
       if (!countdownAudioElement) {
-        countdownAudioElement = new Audio('assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
+        countdownAudioElement = new Audio('assets/assets/audio/audioatlant-dominator-action-countdown-trailer-short-1-554634.ogg');
         countdownAudioElement.loop = true;
       }
       return countdownAudioElement;
@@ -81,8 +84,17 @@
       unlockOne(getCountdownAudioElement());
     }
 
-    ['pointerdown', 'touchstart', 'keydown'].forEach((eventName) => {
-      document.addEventListener(eventName, unlockAudio, { once: true });
+    ['pointerdown', 'mousedown', 'touchstart', 'touchend', 'keydown', 'click'].forEach((eventName) => {
+      // capture: true is essential here — Flutter Web attaches its own
+      // listeners on its internal "glass pane" element and calls
+      // stopPropagation() on pointer/touch events for its own hit-testing,
+      // which would otherwise prevent a bubble-phase listener on `document`
+      // from ever firing. Capture-phase listeners on `document` run before
+      // the event reaches Flutter's element, so they aren't affected by it.
+      document.addEventListener(eventName, unlockAudio, {
+        capture: true,
+        once: true,
+      });
     });
 
     function playAudio() {
