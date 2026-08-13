@@ -37,7 +37,15 @@ service cloud.firestore {
     match /cakes/{cakeId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+      // Any signed-in guest may edit the cake description (the UI only
+      // shows the edit control to the guest who created the entry, or to
+      // admins); everything else about an entry (owner, timestamp) is
+      // fixed once created, and deleting is admin-only.
+      allow update: if isSignedIn() &&
+        (isAdmin() ||
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['cakeDescription']));
+      allow delete: if isAdmin();
     }
 
     match /programItems/{itemId} {

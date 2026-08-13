@@ -3,14 +3,14 @@ import '../models/cake_entry.dart';
 
 /// Handles all Firestore access for the `cakes` collection.
 class CakeRepository {
-  final CollectionReference<Map<String, dynamic>> _collection = FirebaseFirestore
-      .instance
-      .collection('cakes');
+  final CollectionReference<Map<String, dynamic>> _collection =
+      FirebaseFirestore.instance.collection('cakes');
 
   Stream<List<CakeEntry>> watchAllCakes() {
-    return _collection.orderBy('createdAt', descending: true).snapshots().map(
-      (snap) => snap.docs.map(CakeEntry.fromFirestore).toList(),
-    );
+    return _collection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(CakeEntry.fromFirestore).toList());
   }
 
   Future<void> addCake({
@@ -25,6 +25,10 @@ class CakeRepository {
       cakeDescription: cakeDescription,
     );
     await _collection.add(entry.toMap());
+  }
+
+  Future<void> updateCake(String cakeId, String cakeDescription) async {
+    await _collection.doc(cakeId).update({'cakeDescription': cakeDescription});
   }
 
   Future<void> deleteCake(String cakeId) async {

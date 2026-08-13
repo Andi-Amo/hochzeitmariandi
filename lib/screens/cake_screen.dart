@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/cake_entry.dart';
 import '../models/guest.dart';
+import '../services/auth_service.dart';
 import '../services/cake_repository.dart';
 import '../services/guest_session.dart';
 import '../widgets/guest_name_search.dart';
@@ -78,9 +79,55 @@ class _CakeScreenState extends State<CakeScreen> {
     }
   }
 
+  Future<void> _editCake(CakeEntry cake) async {
+    final controller = TextEditingController(text: cake.cakeDescription);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kuchen bearbeiten'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'z.B. "Zitronenkuchen" oder "Käsesahnetorte"',
+          ),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.isEmpty || !mounted) return;
+
+    try {
+      await _repository.updateCake(cake.id, result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kuchen wurde aktualisiert.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler beim Speichern: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final guest = context.watch<GuestSession>().guest;
+    final isAdmin = AuthService().isAdmin;
     if (guest != null) {
       _maybeShowReminderPopup(guest);
     }
@@ -155,6 +202,15 @@ class _CakeScreenState extends State<CakeScreen> {
                               leading: const Icon(Icons.cake_outlined),
                               title: Text(c.cakeDescription),
                               subtitle: Text('von ${c.guestName}'),
+                              trailing:
+                                  (isAdmin ||
+                                      (guest != null && guest.id == c.guestId))
+                                  ? IconButton(
+                                      icon: const Icon(Icons.settings),
+                                      tooltip: 'Kuchen bearbeiten',
+                                      onPressed: () => _editCake(c),
+                                    )
+                                  : null,
                             ),
                           ),
                         )
@@ -163,9 +219,7 @@ class _CakeScreenState extends State<CakeScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              Center(
-                child: const BackButtonWidget(),
-              ),
+              Center(child: const BackButtonWidget()),
             ],
           ),
         ),

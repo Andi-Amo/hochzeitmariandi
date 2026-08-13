@@ -6,6 +6,7 @@ import '../utils/js_interop.dart';
 
 import '../widgets/home_back_button.dart';
 import '../widgets/back_button_widget.dart';
+import '../widgets/seating_plan_table_card.dart';
 
 import '../models/guest.dart';
 import '../services/auth_service.dart';
@@ -172,6 +173,18 @@ class _SeatingPlanBody extends StatelessWidget {
 
   const _SeatingPlanBody({required this.currentGuest});
 
+  List<Guest?> _buildSeatsForTable(List<Guest> guests) {
+    const seatCount = 10;
+    final seats = List<Guest?>.filled(seatCount, null);
+    for (final guest in guests) {
+      final seatIndex = int.tryParse(guest.seat ?? '');
+      if (seatIndex != null && seatIndex >= 1 && seatIndex <= seatCount) {
+        seats[seatIndex - 1] = guest;
+      }
+    }
+    return seats;
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Guest>>(
@@ -180,90 +193,181 @@ class _SeatingPlanBody extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final guests = snapshot.data!
-            .where((g) => g.rsvpStatus == 'attending')
-            .toList();
-        final Map<String, List<Guest>> byTable = {};
-        for (final g in guests) {
-          final table = g.tableId ?? 'Nicht zugeordnet';
-          byTable.putIfAbsent(table, () => []).add(g);
-        }
-        final tableIds = byTable.keys.toList()..sort();
+        final guests = snapshot.data!.where((g) => g.rsvpStatus == 'attending');
+        final tables = <int, List<Guest>>{
+          for (var i = 1; i <= 10; i++) i: <Guest>[],
+        };
+        final unseated = <Guest>[];
 
-        return ListView(
-          children: [
-            Text(
-              'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            for (final tableId in tableIds)
-              _TableCard(
-                tableId: tableId,
-                guests: byTable[tableId]!,
-                currentGuestId: currentGuest.id,
-              ),
-          ],
+        for (final guest in guests) {
+          final tableNumber = int.tryParse(guest.tableId ?? '');
+          if (tableNumber != null && tables.containsKey(tableNumber)) {
+            tables[tableNumber]!.add(guest);
+          } else {
+            unseated.add(guest);
+          }
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 16.0;
+            final cardWidth = (constraints.maxWidth - 32 - gap) / 2;
+
+            return ListView(
+              children: [
+                Text(
+                  'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (
+                        var tableNumber = 1;
+                        tableNumber <= 10;
+                        tableNumber++
+                      )
+                        SizedBox(
+                          width: cardWidth,
+                          child: SeatingPlanTableCard(
+                            tableNumber: tableNumber,
+                            seats: _buildSeatsForTable(tables[tableNumber]!),
+                            showEmptySeats: false,
+                            margin: EdgeInsets.zero,
+                            seatBuilder: (context, guest, seatNumber) {
+                              if (guest == null) {
+                                return const SizedBox.shrink();
+                              }
+                              return _GuestSeatCard(
+                                guest: guest,
+                                isHighlighted: guest.id == currentGuest.id,
+                                seatNumber: seatNumber,
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (unseated.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Ungesetzt',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final guest in unseated)
+                          _GuestListChip(
+                            guest: guest,
+                            isHighlighted: guest.id == currentGuest.id,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
         );
       },
     );
   }
 }
 
-class _TableCard extends StatelessWidget {
-  final String tableId;
-  final List<Guest> guests;
-  final String currentGuestId;
+class _GuestSeatCard extends StatelessWidget {
+  final Guest guest;
+  final bool isHighlighted;
+  final int seatNumber;
 
-  const _TableCard({
-    required this.tableId,
-    required this.guests,
-    required this.currentGuestId,
+  const _GuestSeatCard({
+    required this.guest,
+    required this.isHighlighted,
+    required this.seatNumber,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isMyTable = guests.any((g) => g.id == currentGuestId);
     final colorScheme = Theme.of(context).colorScheme;
+    final accent = isHighlighted ? colorScheme.primary : Colors.brown;
 
-    return Card(
-      color: isMyTable ? colorScheme.primaryContainer : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: isMyTable
-            ? BorderSide(color: colorScheme.primary, width: 2)
-            : BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tisch $tableId',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: guests.map((g) {
-                final isMe = g.id == currentGuestId;
-                return Chip(
-                  avatar: isMe ? const Icon(Icons.star, size: 18) : null,
-                  label: Text(
-                    g.fullName + (g.seat != null ? ' (${g.seat})' : ''),
-                  ),
-                  backgroundColor: isMe ? colorScheme.primary : null,
-                  labelStyle: isMe
-                      ? TextStyle(color: colorScheme.onPrimary)
-                      : null,
-                );
-              }).toList(),
-            ),
-          ],
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: accent.withValues(alpha: 0.25),
+          border: Border.all(color: accent, width: 2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                guest.isChild ? Icons.child_care : Icons.person,
+                size: 16,
+                color: accent,
+              ),
+              Text(
+                guest.firstName.split(' ').first,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  height: 1.0,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                seatNumber.toString(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _GuestListChip extends StatelessWidget {
+  final Guest guest;
+  final bool isHighlighted;
+
+  const _GuestListChip({required this.guest, required this.isHighlighted});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Chip(
+      avatar: isHighlighted ? const Icon(Icons.star, size: 18) : null,
+      label: Text(
+        guest.fullName + (guest.seat != null ? ' (${guest.seat})' : ''),
+      ),
+      backgroundColor: isHighlighted ? colorScheme.primary : null,
+      labelStyle: isHighlighted
+          ? TextStyle(color: colorScheme.onPrimary)
+          : null,
     );
   }
 }
