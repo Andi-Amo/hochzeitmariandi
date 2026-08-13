@@ -13,7 +13,6 @@ import '../services/auth_service.dart';
 import '../services/guest_repository.dart';
 import '../services/guest_session.dart';
 import '../services/wedding_config.dart';
-import '../widgets/guest_name_search.dart';
 
 /// The "hidden" seating plan: only reachable after the guest identifies
 /// themselves, and only once [WeddingConfig.seatingPlanUnlockTime] has
@@ -71,19 +70,7 @@ class _SeatingPlanScreenState extends State<SeatingPlanScreen> {
                         now: now,
                       )
                     : guest == null
-                    ? SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Der Sitzplan ist nur für eingeladene Gäste sichtbar. '
-                              'Bitte gib deinen Namen ein.',
-                            ),
-                            const SizedBox(height: 16),
-                            const GuestNameSearch(),
-                          ],
-                        ),
-                      )
+                    ? const _GuestSearchPanel()
                     : _SeatingPlanBody(currentGuest: guest),
               ),
               Padding(
@@ -125,7 +112,7 @@ class _LockedCountdownState extends State<_LockedCountdown> {
     try {
       callJsMethod('playCountdownSoundLoop', []);
     } catch (e) {
-      print('Countdown sound error: $e');
+      debugPrint('Countdown sound error: $e');
     }
   }
 
@@ -133,7 +120,7 @@ class _LockedCountdownState extends State<_LockedCountdown> {
     try {
       callJsMethod('stopCountdownSound', []);
     } catch (e) {
-      print('Countdown sound stop error: $e');
+      debugPrint('Countdown sound stop error: $e');
     }
   }
 
@@ -162,6 +149,211 @@ class _LockedCountdownState extends State<_LockedCountdown> {
               'Noch $days Tage, $hours Std. $minutes Min. $seconds Sek.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuestSearchPanel extends StatefulWidget {
+  const _GuestSearchPanel();
+
+  @override
+  State<_GuestSearchPanel> createState() => _GuestSearchPanelState();
+}
+
+class _GuestSearchPanelState extends State<_GuestSearchPanel> {
+  final GuestRepository _repository = GuestRepository();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+  List<Guest> _suggestions = [];
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    super.dispose();
+  }
+
+  int _levenshteinDistance(String s1, String s2) {
+    s1 = s1.toLowerCase().trim();
+    s2 = s2.toLowerCase().trim();
+    if (s1 == s2) return 0;
+    if (s1.isEmpty) return s2.length;
+    if (s2.isEmpty) return s1.length;
+
+    final v0 = List<int>.generate(s2.length + 1, (i) => i);
+    final v1 = List<int>.filled(s2.length + 1, 0);
+
+    for (var i = 0; i < s1.length; i++) {
+      v1[0] = i + 1;
+      for (var j = 0; j < s2.length; j++) {
+        final cost = s1[i] == s2[j] ? 0 : 1;
+        v1[j + 1] = [
+          v1[j] + 1,
+          v0[j + 1] + 1,
+          v0[j] + cost,
+        ].reduce((a, b) => a < b ? a : b);
+      }
+      for (var j = 0; j <= s2.length; j++) {
+        v0[j] = v1[j];
+      }
+    }
+    return v0[s2.length];
+  }
+
+  Future<void> _search() async {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final query = '$firstName $lastName'.trim();
+    if (query.isEmpty) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+      _suggestions = [];
+    });
+
+    try {
+      final matches = await _repository.searchGuests(query);
+      if (!mounted) return;
+
+      if (matches.isEmpty) {
+        final allGuests = await _repository.fetchAllGuests();
+        if (!mounted) return;
+
+        final ranked = <({Guest guest, int distance})>[];
+        for (final guest in allGuests) {
+          final distance = _levenshteinDistance(query, guest.fullName);
+          ranked.add((guest: guest, distance: distance));
+        }
+        ranked.sort((a, b) => a.distance.compareTo(b.distance));
+
+        setState(() {
+          _error = 'Kein exakter Treffer gefunden. Vielleicht meinst du:';
+          _suggestions = ranked.take(5).map((entry) => entry.guest).toList();
+        });
+      } else if (matches.length == 1) {
+        _selectGuest(matches.first);
+      } else {
+        _showSelectGuestDialog(matches);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Fehler bei der Suche. Bitte versuche es erneut.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _selectGuest(Guest guest) {
+    context.read<GuestSession>().identify(guest);
+  }
+
+  void _showSelectGuestDialog(List<Guest> matches) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bitte wähle deinen Namen aus:'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: matches.length,
+            itemBuilder: (ctx, index) {
+              final g = matches[index];
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(g.fullName),
+                subtitle: g.groupId != null
+                    ? Text('Gruppe: ${g.groupId}')
+                    : null,
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _selectGuest(g);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Der Sitzplan ist nur für eingeladene Gäste sichtbar. Bitte gib deinen Vor- und Nachnamen ein.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _firstNameController,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: 'Vorname',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _lastNameController,
+            textInputAction: TextInputAction.search,
+            decoration: const InputDecoration(
+              labelText: 'Nachname',
+              prefixIcon: Icon(Icons.person_search),
+            ),
+            onSubmitted: (_) => _search(),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _loading ? null : _search,
+            icon: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.search),
+            label: const Text('Suchen'),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            Text(_error!, style: Theme.of(context).textTheme.titleSmall),
+          ],
+          if (_suggestions.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Column(
+                children: [
+                  for (final guest in _suggestions)
+                    ListTile(
+                      leading: const Icon(Icons.person),
+                      title: Text(guest.fullName),
+                      subtitle: guest.groupId != null
+                          ? Text('Gruppe: ${guest.groupId}')
+                          : null,
+                      onTap: () => _selectGuest(guest),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -287,7 +479,7 @@ class _SeatingPlanBody extends StatelessWidget {
   }
 }
 
-class _GuestSeatCard extends StatelessWidget {
+class _GuestSeatCard extends StatefulWidget {
   final Guest guest;
   final bool isHighlighted;
   final int seatNumber;
@@ -299,50 +491,113 @@ class _GuestSeatCard extends StatelessWidget {
   });
 
   @override
+  State<_GuestSeatCard> createState() => _GuestSeatCardState();
+}
+
+class _GuestSeatCardState extends State<_GuestSeatCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _scale = Tween<double>(
+      begin: 0.96,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    if (widget.isHighlighted) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuestSeatCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isHighlighted && !_controller.isAnimating) {
+      _controller.repeat(reverse: true);
+    } else if (!widget.isHighlighted && _controller.isAnimating) {
+      _controller.stop();
+      _controller.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final accent = isHighlighted ? colorScheme.primary : Colors.brown;
+    final accent = widget.isHighlighted ? colorScheme.primary : Colors.brown;
+    final background = widget.isHighlighted
+        ? Color.lerp(
+            colorScheme.primaryContainer,
+            colorScheme.tertiaryContainer,
+            _controller.value,
+          )!
+        : Colors.brown.shade100;
 
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: accent.withValues(alpha: 0.25),
-          border: Border.all(color: accent, width: 2),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                guest.isChild ? Icons.child_care : Icons.person,
-                size: 16,
-                color: accent,
-              ),
-              Text(
-                guest.firstName.split(' ').first,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  height: 1.0,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                seatNumber.toString(),
-                style: TextStyle(
-                  fontSize: 10,
+    return ScaleTransition(
+      scale: widget.isHighlighted ? _scale : const AlwaysStoppedAnimation(1),
+      child: SizedBox(
+        width: 64,
+        height: 64,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: background,
+            border: Border.all(color: accent, width: 2),
+            boxShadow: widget.isHighlighted
+                ? [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.45),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.guest.isChild ? Icons.child_care : Icons.person,
+                  size: 16,
                   color: accent,
-                  fontWeight: FontWeight.w600,
-                  height: 1.0,
                 ),
-              ),
-            ],
+                if (widget.isHighlighted)
+                  const Icon(Icons.star, size: 10, color: Colors.amber),
+                Text(
+                  widget.guest.firstName.split(' ').first,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    height: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  widget.seatNumber.toString(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: accent,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
