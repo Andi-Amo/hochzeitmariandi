@@ -162,6 +162,56 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
     await _updateGuestSeat(guest, null, null);
   }
 
+  Future<void> _swapTables(int tableA, int tableB) async {
+    if (tableA == tableB) return;
+
+    await _repository.swapTables(tableA.toString(), tableB.toString());
+  }
+
+  Future<void> _showTableSwapDialog(
+    BuildContext context,
+    int tableNumber,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final targetTable = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text('Tisch $tableNumber tauschen'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: Text(
+              'Mit welchem Tisch soll Tisch $tableNumber die Plätze tauschen?',
+            ),
+          ),
+          for (var otherTable = 1; otherTable <= _tableCount; otherTable++)
+            if (otherTable != tableNumber)
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(ctx).pop(otherTable),
+                child: Text('Tisch $otherTable'),
+              ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Abbrechen'),
+          ),
+        ],
+      ),
+    );
+
+    if (targetTable == null || !mounted) return;
+    await _swapTables(tableNumber, targetTable);
+
+    if (mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Tisch $tableNumber wurde mit Tisch $targetTable getauscht.',
+          ),
+        ),
+      );
+    }
+  }
+
   void _showMoveDialog(
     BuildContext context,
     Guest guest,
@@ -288,6 +338,12 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                                   ),
                                   showEmptySeats: true,
                                   margin: EdgeInsets.zero,
+                                  headerTrailing: IconButton(
+                                    tooltip: 'Tisch tauschen',
+                                    icon: const Icon(Icons.swap_horiz),
+                                    onPressed: () =>
+                                        _showTableSwapDialog(context, tableNum),
+                                  ),
                                   seatBuilder: (context, guest, seatNumber) {
                                     return _SeatDropTarget(
                                       guest: guest,

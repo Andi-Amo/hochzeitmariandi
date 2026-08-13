@@ -161,6 +161,24 @@ class GuestRepository {
     await _collection.doc(guest.id).update(guest.toMap());
   }
 
+  Future<void> swapTables(String tableA, String tableB) async {
+    if (tableA == tableB) return;
+
+    final snapshot = await _collection
+        .where('tableId', whereIn: [tableA, tableB])
+        .get();
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final currentTableId = data['tableId'] as String?;
+      final newTableId = currentTableId == tableA ? tableB : tableA;
+      batch.update(doc.reference, {'tableId': newTableId});
+    }
+
+    await batch.commit();
+  }
+
   Future<void> deleteGuest(String guestId) async {
     await _collection.doc(guestId).delete();
   }

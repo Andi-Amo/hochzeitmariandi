@@ -11,6 +11,7 @@ class SeatingPlanTableCard extends StatelessWidget {
   final SeatingPlanSeatBuilder seatBuilder;
   final bool showEmptySeats;
   final EdgeInsetsGeometry margin;
+  final Widget? headerTrailing;
 
   const SeatingPlanTableCard({
     super.key,
@@ -19,6 +20,7 @@ class SeatingPlanTableCard extends StatelessWidget {
     required this.seatBuilder,
     this.showEmptySeats = true,
     this.margin = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    this.headerTrailing,
   });
 
   bool _shouldRenderSeat(Guest? guest) {
@@ -48,11 +50,17 @@ class SeatingPlanTableCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Tisch $tableNumber',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  'Tisch $tableNumber',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                headerTrailing ?? const SizedBox.shrink(),
+              ],
             ),
             const SizedBox(height: 24),
             Center(
