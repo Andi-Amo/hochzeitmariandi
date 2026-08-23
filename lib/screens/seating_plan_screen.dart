@@ -394,7 +394,9 @@ class _SeatingPlanBody extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final attendees = snapshot.data!.where((g) => g.rsvpStatus == 'attending');
+        final attendees = snapshot.data!.where(
+          (g) => g.rsvpStatus == 'attending',
+        );
         final tables = <int, List<Guest>>{
           for (var i = 1; i <= 9; i++) i: <Guest>[],
         };
@@ -415,7 +417,9 @@ class _SeatingPlanBody extends StatelessWidget {
             tableNumber: tableNumber,
             seats: _buildSeatsForTable(tableNumber, guestsAtTable),
             highlightedGuestId: currentGuest.id,
-            isHighlighted: guestsAtTable.any((guest) => guest.id == currentGuest.id),
+            isHighlighted: guestsAtTable.any(
+              (guest) => guest.id == currentGuest.id,
+            ),
           );
         }
 
@@ -424,7 +428,10 @@ class _SeatingPlanBody extends StatelessWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -439,38 +446,50 @@ class _SeatingPlanBody extends StatelessWidget {
                         border: Border.all(color: Colors.black54, width: 2),
                         borderRadius: BorderRadius.circular(18),
                       ),
+                      clipBehavior: Clip.antiAlias,
+                      width: double.infinity,
                       padding: const EdgeInsets.all(24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const _EingangLabel(),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 20,
-                                  runSpacing: 20,
-                                  children: [
-                                    for (final tableNumber in _backRowTables)
-                                      buildTable(tableNumber),
-                                  ],
-                                ),
-                                const SizedBox(height: 28),
-                                Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 20,
-                                  runSpacing: 20,
-                                  children: [
-                                    for (final tableNumber in _frontRowTables)
-                                      buildTable(tableNumber),
-                                  ],
-                                ),
-                              ],
-                            ),
+                      child: AspectRatio(
+                        aspectRatio: 2.7,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const _EingangLabel(),
+                              const SizedBox(width: 24),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (final tableNumber
+                                          in _backRowTables) ...[
+                                        buildTable(tableNumber),
+                                        if (tableNumber != _backRowTables.last)
+                                          const SizedBox(width: 20),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 40),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (final tableNumber
+                                          in _frontRowTables) ...[
+                                        buildTable(tableNumber),
+                                        if (tableNumber != _frontRowTables.last)
+                                          const SizedBox(width: 20),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                     if (unseated.isNotEmpty) ...[
@@ -516,15 +535,15 @@ class _EingangLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black54),
-      ),
-      child: const RotatedBox(
-        quarterTurns: 1,
-        child: Text('Eingang'),
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black54),
+        ),
+        child: const RotatedBox(quarterTurns: 1, child: Text('Eingang')),
       ),
     );
   }
@@ -553,8 +572,12 @@ class _RoomTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLong = _isLongTable;
-    final accent = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.orange;
-    final borderColor = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.black54;
+    final accent = isHighlighted
+        ? Theme.of(context).colorScheme.primary
+        : Colors.orange;
+    final borderColor = isHighlighted
+        ? Theme.of(context).colorScheme.primary
+        : Colors.black54;
 
     final topSeats = isLong
         ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
@@ -635,7 +658,9 @@ class _RoomTable extends StatelessWidget {
         boxShadow: isSeatHighlighted
             ? [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.35),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -662,7 +687,11 @@ class _RoomTable extends StatelessWidget {
 
   /// Builds a horizontal line of seat chips, skipping unassigned seats
   /// entirely so the table stays compact instead of showing empty gaps.
-  Widget _seatRow(BuildContext context, List<Guest?> guests, {required bool large}) {
+  Widget _seatRow(
+    BuildContext context,
+    List<Guest?> guests, {
+    required bool large,
+  }) {
     final chips = <Widget>[];
     for (final guest in guests) {
       if (guest == null) continue;
@@ -673,7 +702,11 @@ class _RoomTable extends StatelessWidget {
   }
 
   /// Same as [_seatRow] but stacked vertically for the left/right sides.
-  Widget _seatColumn(BuildContext context, List<Guest?> guests, {required bool large}) {
+  Widget _seatColumn(
+    BuildContext context,
+    List<Guest?> guests, {
+    required bool large,
+  }) {
     final chips = <Widget>[];
     for (final guest in guests) {
       if (guest == null) continue;
