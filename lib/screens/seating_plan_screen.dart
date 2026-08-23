@@ -426,7 +426,7 @@ class _SeatingPlanBody extends StatelessWidget {
         return SingleChildScrollView(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1100),
+              constraints: const BoxConstraints(maxWidth: 1500),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -461,6 +461,7 @@ class _SeatingPlanBody extends StatelessWidget {
                               const SizedBox(width: 24),
                               Column(
                                 mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -473,7 +474,7 @@ class _SeatingPlanBody extends StatelessWidget {
                                       ],
                                     ],
                                   ),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 52),
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -572,12 +573,8 @@ class _RoomTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLong = _isLongTable;
-    final accent = isHighlighted
-        ? Theme.of(context).colorScheme.primary
-        : Colors.orange;
-    final borderColor = isHighlighted
-        ? Theme.of(context).colorScheme.primary
-        : Colors.black54;
+    final accent = isHighlighted ? Colors.amber.shade700 : Colors.orange;
+    final borderColor = isHighlighted ? accent : Colors.black54;
 
     final topSeats = isLong
         ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
@@ -593,47 +590,68 @@ class _RoomTable extends StatelessWidget {
       height: isLong ? 64.0 : 52.0,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFFFF8C3A),
-        border: Border.all(color: borderColor, width: 2),
+        color: isHighlighted
+            ? const Color(0xFFFFC247)
+            : const Color(0xFFFF8C3A),
+        border: Border.all(color: borderColor, width: isHighlighted ? 3 : 2),
         borderRadius: BorderRadius.circular(10),
         boxShadow: isHighlighted
             ? [
                 BoxShadow(
-                  color: accent.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  spreadRadius: 2,
+                  color: accent.withValues(alpha: 0.5),
+                  blurRadius: 16,
+                  spreadRadius: 3,
                 ),
               ]
             : null,
       ),
-      child: Text(
-        'Tisch $tableNumber',
-        style: TextStyle(
-          fontSize: isLong ? 16 : 13,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isHighlighted) ...[
+            Icon(
+              Icons.star_rounded,
+              size: isLong ? 18 : 15,
+              color: Colors.black87,
+            ),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            'Tisch $tableNumber',
+            style: TextStyle(
+              fontSize: isLong ? 16 : 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _seatRow(context, topSeats, large: isLong),
-        const SizedBox(height: 6),
-        Row(
+    return Transform.rotate(
+      angle: isLong ? 0 : -0.08,
+      child: _PulsingTableHighlight(
+        isHighlighted: isHighlighted,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _seatColumn(context, leftSeats, large: isLong),
-            const SizedBox(width: 8),
-            tableBox,
-            const SizedBox(width: 8),
-            _seatColumn(context, rightSeats, large: isLong),
+            _seatRow(context, topSeats, large: isLong),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _seatColumn(context, leftSeats, large: isLong),
+                const SizedBox(width: 8),
+                tableBox,
+                const SizedBox(width: 8),
+                _seatColumn(context, rightSeats, large: isLong),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _seatRow(context, bottomSeats, large: isLong),
           ],
         ),
-        const SizedBox(height: 6),
-        _seatRow(context, bottomSeats, large: isLong),
-      ],
+      ),
     );
   }
 
@@ -714,6 +732,101 @@ class _RoomTable extends StatelessWidget {
       chips.add(_seatChip(context, guest, large: large));
     }
     return Column(mainAxisSize: MainAxisSize.min, children: chips);
+  }
+}
+
+class _PulsingTableHighlight extends StatefulWidget {
+  final bool isHighlighted;
+  final Widget child;
+
+  const _PulsingTableHighlight({
+    required this.isHighlighted,
+    required this.child,
+  });
+
+  @override
+  State<_PulsingTableHighlight> createState() => _PulsingTableHighlightState();
+}
+
+class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _pulse = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    if (widget.isHighlighted) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PulsingTableHighlight oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isHighlighted == oldWidget.isHighlighted) return;
+
+    if (widget.isHighlighted) {
+      _controller.repeat(reverse: true);
+    } else {
+      _controller
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isHighlighted) {
+      return Padding(padding: const EdgeInsets.all(5), child: widget.child);
+    }
+
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _pulse,
+        child: widget.child,
+        builder: (context, child) {
+          final value = _pulse.value;
+          return Transform.scale(
+            scale: 1 + (value * 0.025),
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.08 + (value * 0.1)),
+                border: Border.all(
+                  color: Colors.amber.shade700.withValues(
+                    alpha: 0.65 + (value * 0.35),
+                  ),
+                  width: 2.5,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.amber.withValues(
+                      alpha: 0.22 + (value * 0.28),
+                    ),
+                    blurRadius: 12 + (value * 14),
+                    spreadRadius: 1 + (value * 4),
+                  ),
+                ],
+              ),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
