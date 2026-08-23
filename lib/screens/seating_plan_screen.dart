@@ -6,8 +6,6 @@ import '../utils/js_interop.dart';
 
 import '../widgets/home_back_button.dart';
 import '../widgets/back_button_widget.dart';
-import '../widgets/seating_plan_table_card.dart';
-
 import '../models/guest.dart';
 import '../services/auth_service.dart';
 import '../services/guest_repository.dart';
@@ -365,8 +363,12 @@ class _SeatingPlanBody extends StatelessWidget {
 
   const _SeatingPlanBody({required this.currentGuest});
 
-  List<Guest?> _buildSeatsForTable(List<Guest> guests) {
-    const seatCount = 10;
+  int _seatCountForTable(int tableNumber) {
+    return tableNumber == 9 ? 16 : 10;
+  }
+
+  List<Guest?> _buildSeatsForTable(int tableNumber, List<Guest> guests) {
+    final seatCount = _seatCountForTable(tableNumber);
     final seats = List<Guest?>.filled(seatCount, null);
     for (final guest in guests) {
       final seatIndex = int.tryParse(guest.seat ?? '');
@@ -377,6 +379,20 @@ class _SeatingPlanBody extends StatelessWidget {
     return seats;
   }
 
+  List<_RoomTablePosition> _tablePositions() {
+    return const [
+      _RoomTablePosition(number: 1, left: 90, top: 80, width: 128, height: 82),
+      _RoomTablePosition(number: 2, left: 240, top: 80, width: 128, height: 82),
+      _RoomTablePosition(number: 3, left: 390, top: 80, width: 128, height: 82),
+      _RoomTablePosition(number: 4, left: 540, top: 80, width: 128, height: 82),
+      _RoomTablePosition(number: 5, left: 150, top: 430, width: 128, height: 82),
+      _RoomTablePosition(number: 6, left: 330, top: 430, width: 128, height: 82),
+      _RoomTablePosition(number: 7, left: 510, top: 430, width: 128, height: 82),
+      _RoomTablePosition(number: 8, left: 690, top: 430, width: 128, height: 82),
+      _RoomTablePosition(number: 9, left: 285, top: 220, width: 310, height: 120),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Guest>>(
@@ -385,13 +401,14 @@ class _SeatingPlanBody extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final guests = snapshot.data!.where((g) => g.rsvpStatus == 'attending');
+
+        final attendees = snapshot.data!.where((g) => g.rsvpStatus == 'attending');
         final tables = <int, List<Guest>>{
-          for (var i = 1; i <= 10; i++) i: <Guest>[],
+          for (var i = 1; i <= 9; i++) i: <Guest>[],
         };
         final unseated = <Guest>[];
 
-        for (final guest in guests) {
+        for (final guest in attendees) {
           final tableNumber = int.tryParse(guest.tableId ?? '');
           if (tableNumber != null && tables.containsKey(tableNumber)) {
             tables[tableNumber]!.add(guest);
@@ -402,80 +419,263 @@ class _SeatingPlanBody extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            const gap = 16.0;
-            final cardWidth = (constraints.maxWidth - 32 - gap) / 2;
-
-            return ListView(
-              children: [
-                Text(
-                  'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: [
-                      for (
-                        var tableNumber = 1;
-                        tableNumber <= 10;
-                        tableNumber++
-                      )
-                        SizedBox(
-                          width: cardWidth,
-                          child: SeatingPlanTableCard(
-                            tableNumber: tableNumber,
-                            seats: _buildSeatsForTable(tables[tableNumber]!),
-                            showEmptySeats: false,
-                            margin: EdgeInsets.zero,
-                            seatBuilder: (context, guest, seatNumber) {
-                              if (guest == null) {
-                                return const SizedBox.shrink();
-                              }
-                              return _GuestSeatCard(
-                                guest: guest,
-                                isHighlighted: guest.id == currentGuest.id,
-                                seatNumber: seatNumber,
-                              );
-                            },
+            return SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F5E6),
+                            border: Border.all(color: Colors.black54, width: 2),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: SizedBox(
+                            height: 640,
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 38,
+                                  top: 26,
+                                  child: Container(
+                                    width: 70,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: Colors.black54),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 42,
+                                  top: 22,
+                                  child: Container(
+                                    width: 90,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: Colors.black54),
+                                    ),
+                                  ),
+                                ),
+                                for (final position in _tablePositions())
+                                  Positioned(
+                                    left: position.left.toDouble(),
+                                    top: position.top.toDouble(),
+                                    child: _RoomTable(
+                                      tableNumber: position.number,
+                                      seats: _buildSeatsForTable(
+                                        position.number,
+                                        tables[position.number] ?? const [],
+                                      ),
+                                      width: position.width.toDouble(),
+                                      height: position.height.toDouble(),
+                                      isHighlighted: tables[position.number]?.any(
+                                            (guest) => guest.id == currentGuest.id,
+                                          ) ??
+                                          false,
+                                    ),
+                                  ),
+                                Positioned(
+                                  left: 18,
+                                  top: 250,
+                                  child: RotatedBox(
+                                    quarterTurns: 1,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: Colors.black54),
+                                      ),
+                                      child: const Text('Eingang'),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                if (unseated.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Ungesetzt',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final guest in unseated)
-                          _GuestListChip(
-                            guest: guest,
-                            isHighlighted: guest.id == currentGuest.id,
+                        if (unseated.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'Ungesetzt',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                           ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final guest in unseated)
+                                  _GuestListChip(
+                                    guest: guest,
+                                    isHighlighted: guest.id == currentGuest.id,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                ],
-              ],
+                ),
+              ),
             );
           },
         );
       },
     );
+  }
+}
+
+class _RoomTablePosition {
+  final int number;
+  final int left;
+  final int top;
+  final int width;
+  final int height;
+
+  const _RoomTablePosition({
+    required this.number,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+}
+
+class _RoomTable extends StatelessWidget {
+  final int tableNumber;
+  final List<Guest?> seats;
+  final double width;
+  final double height;
+  final bool isHighlighted;
+
+  const _RoomTable({
+    required this.tableNumber,
+    required this.seats,
+    required this.width,
+    required this.height,
+    required this.isHighlighted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.orange;
+    final borderColor = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.black54;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF8C3A),
+        border: Border.all(color: borderColor, width: 2),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 10,
+            right: 10,
+            top: 10,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ..._seatChips(context, tableNumber, seats, side: 'top'),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ..._seatChips(context, tableNumber, seats, side: 'bottom'),
+              ],
+            ),
+          ),
+          Center(
+            child: Text(
+              'Tisch $tableNumber',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _seatChips(BuildContext context, int tableNumber, List<Guest?> seats, {required String side}) {
+    final sideSeats = <Guest?>[];
+    final seatCount = seats.length;
+
+    if (tableNumber == 9 && seatCount == 16) {
+      if (side == 'top') {
+        sideSeats.addAll([seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]);
+      } else {
+        sideSeats.addAll([seats[6], seats[7], seats[8], seats[9], seats[10], seats[11]]);
+      }
+    } else {
+      final leftCount = (seatCount / 2).ceil();
+      if (side == 'top') {
+        sideSeats.addAll(seats.take(leftCount));
+      } else {
+        sideSeats.addAll(seats.skip(leftCount).take(leftCount));
+      }
+    }
+
+    return sideSeats.map((guest) {
+      if (guest == null) {
+        return const SizedBox(width: 16, height: 16);
+      }
+
+      final name = guest.firstName.split(' ').first;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.black54, width: 1),
+          ),
+          child: Text(
+            name,
+            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+    }).toList();
   }
 }
 

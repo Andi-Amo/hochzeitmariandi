@@ -5,11 +5,11 @@ import '../../services/guest_repository.dart';
 import '../../widgets/home_back_button.dart';
 import '../../widgets/seating_plan_table_card.dart';
 
-const int _tableCount = 10;
+const int _tableCount = 9;
 const int _defaultSeatsPerTable = 10;
 
 int _seatCountForTable(int tableNumber) {
-  return _defaultSeatsPerTable;
+  return tableNumber == 9 ? 16 : _defaultSeatsPerTable;
 }
 
 // Callback type used to show the move-guest dialog from any guest chip.
@@ -306,7 +306,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          '10 Tische mit je 10 Plätzen • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
+                          '9 Tische mit flexibel vielen Plätzen • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
                           style: Theme.of(context).textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
