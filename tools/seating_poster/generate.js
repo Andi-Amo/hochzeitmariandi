@@ -145,6 +145,21 @@ function guestAt(tables, tableNumber, seatNumber) {
     .find((guest) => guest.seat === seatNumber);
 }
 
+function guestsAt(tables, tableNumber, seatNumbers) {
+  return seatNumbers
+    .map((seatNumber) => guestAt(tables, tableNumber, seatNumber))
+    .filter(Boolean);
+}
+
+function distributedValues(count, start, end) {
+  if (count === 0) return [];
+  if (count === 1) return [(start + end) / 2];
+  return Array.from(
+    { length: count },
+    (_, index) => start + ((end - start) * index) / (count - 1),
+  );
+}
+
 function rotatePoint(cx, cy, dx, dy, angleDegrees) {
   const angle = (angleDegrees * Math.PI) / 180;
   return {
@@ -153,26 +168,30 @@ function rotatePoint(cx, cy, dx, dy, angleDegrees) {
   };
 }
 
-const normalSeatOffsets = [
-  [-48, -65],
-  [0, -65],
-  [48, -65],
-  [-90, -26],
-  [-90, 26],
-  [90, -26],
-  [90, 26],
-  [-48, 65],
-  [0, 65],
-  [48, 65],
-];
-
 function normalTable(tables, tableNumber, cx, cy, angleDegrees) {
-  const chairs = normalSeatOffsets
-    .map(([dx, dy], index) => {
-      const point = rotatePoint(cx, cy, dx, dy, angleDegrees);
-      return seat(guestAt(tables, tableNumber, index + 1), point.x, point.y);
-    })
-    .join('');
+  const horizontalSide = (seatNumbers, y) => {
+    const guests = guestsAt(tables, tableNumber, seatNumbers);
+    const positions = distributedValues(guests.length, -48, 48);
+    return guests.map((guest, index) => {
+      const point = rotatePoint(cx, cy, positions[index], y, angleDegrees);
+      return seat(guest, point.x, point.y);
+    });
+  };
+  const verticalSide = (seatNumbers, x) => {
+    const guests = guestsAt(tables, tableNumber, seatNumbers);
+    const positions = distributedValues(guests.length, -26, 26);
+    return guests.map((guest, index) => {
+      const point = rotatePoint(cx, cy, x, positions[index], angleDegrees);
+      return seat(guest, point.x, point.y);
+    });
+  };
+
+  const chairs = [
+    ...horizontalSide([1, 2, 3], -65),
+    ...verticalSide([4, 5], -90),
+    ...verticalSide([6, 7], 90),
+    ...horizontalSide([8, 9, 10], 65),
+  ].join('');
 
   return `
     <g>
@@ -183,22 +202,28 @@ function normalTable(tables, tableNumber, cx, cy, angleDegrees) {
     </g>`;
 }
 
-const longTopX = [-135, -81, -27, 27, 81, 135];
-const longSeatOffsets = [
-  ...longTopX.map((x) => [x, -72]),
-  [-190, -25],
-  [-190, 25],
-  [190, -25],
-  [190, 25],
-  ...longTopX.map((x) => [x, 72]),
-];
-
 function longTable(tables, tableNumber, cx, cy) {
-  const chairs = longSeatOffsets
-    .map(([dx, dy], index) =>
-      seat(guestAt(tables, tableNumber, index + 1), cx + dx, cy + dy),
-    )
-    .join('');
+  const horizontalSide = (seatNumbers, y) => {
+    const guests = guestsAt(tables, tableNumber, seatNumbers);
+    const positions = distributedValues(guests.length, -135, 135);
+    return guests.map((guest, index) =>
+      seat(guest, cx + positions[index], cy + y),
+    );
+  };
+  const verticalSide = (seatNumbers, x) => {
+    const guests = guestsAt(tables, tableNumber, seatNumbers);
+    const positions = distributedValues(guests.length, -25, 25);
+    return guests.map((guest, index) =>
+      seat(guest, cx + x, cy + positions[index]),
+    );
+  };
+
+  const chairs = [
+    ...horizontalSide([1, 2, 3, 4, 5, 6], -72),
+    ...verticalSide([7, 8], -190),
+    ...verticalSide([9, 10], 190),
+    ...horizontalSide([11, 12, 13, 14, 15, 16], 72),
+  ].join('');
 
   return `
     <g>
@@ -253,6 +278,23 @@ function ivyLeaf(x, y, scale, rotation, light = false) {
     </g>`;
 }
 
+function blossom(x, y, scale, rotation, ivory = false) {
+  const petalClass = ivory ? 'petal-ivory' : 'petal-rose';
+  return `
+    <g transform="translate(${x} ${y}) rotate(${rotation}) scale(${scale})">
+      <ellipse cx="0" cy="-8" rx="5" ry="9" class="${petalClass}"/>
+      <ellipse cx="7.6" cy="-2.4" rx="5" ry="9" transform="rotate(72 7.6 -2.4)"
+        class="${petalClass}"/>
+      <ellipse cx="4.7" cy="6.5" rx="5" ry="9" transform="rotate(144 4.7 6.5)"
+        class="${petalClass}"/>
+      <ellipse cx="-4.7" cy="6.5" rx="5" ry="9" transform="rotate(216 -4.7 6.5)"
+        class="${petalClass}"/>
+      <ellipse cx="-7.6" cy="-2.4" rx="5" ry="9" transform="rotate(288 -7.6 -2.4)"
+        class="${petalClass}"/>
+      <circle r="4" class="blossom-center"/>
+    </g>`;
+}
+
 function headerIvy() {
   const leaves = [
     ivyLeaf(42, 77, 1.05, -58),
@@ -270,6 +312,8 @@ function headerIvy() {
     <path d="M188 36 C205 9 229 17 224 34 C221 46 207 43 211 32"
       class="ivy-tendril"/>
     ${leaves}
+    ${blossom(101, 49, 0.72, -12)}
+    ${blossom(222, 53, 0.52, 18, true)}
     <circle cx="255" cy="73" r="6" class="berry"/>
     <circle cx="267" cy="68" r="4" class="berry-light"/>`;
 
@@ -296,6 +340,8 @@ function cornerIvy() {
     <path d="M174 51 C199 41 208 61 197 72 C188 80 179 71 189 65"
       class="ivy-tendril"/>
     ${leaves}
+    ${blossom(88, -4, 0.68, -15, true)}
+    ${blossom(151, 13, 0.58, 24)}
     <circle cx="174" cy="88" r="6" class="berry"/>
     <circle cx="187" cy="91" r="4" class="berry-light"/>`;
 
@@ -373,14 +419,14 @@ function posterHtml(tables, qr) {
       stroke-width: 1.8;
     }
     .seat-name {
-      fill: #2f3832;
+      fill: #3f5749;
       font-family: "Poster Georgia", Georgia, serif;
       font-size: 10.5px;
       font-style: italic;
       font-weight: 700;
     }
     .table-label {
-      fill: #46362f;
+      fill: #754b46;
       font-family: "Poster Gabriola", Gabriola, Georgia, serif;
       font-size: 30px;
       font-weight: 400;
@@ -420,6 +466,9 @@ function posterHtml(tables, qr) {
     }
     .berry { fill: #c47f78; stroke: #a96763; stroke-width: 1; }
     .berry-light { fill: #d9a39a; }
+    .petal-rose { fill: #d9a39a; stroke: #b9786c; stroke-width: .8; }
+    .petal-ivory { fill: #fffaf2; stroke: #c7ad7e; stroke-width: .8; }
+    .blossom-center { fill: #c7ad7e; stroke: #aa8d5e; stroke-width: .7; }
   </style>
 </head>
 <body>
