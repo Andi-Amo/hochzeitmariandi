@@ -601,6 +601,11 @@ class _RoomTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.orange;
     final borderColor = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.black54;
+    final isLongTable = tableNumber == 9 && seats.length >= 16;
+    final tableWidth = isLongTable ? width * 0.74 : width * 0.62;
+    final tableHeight = isLongTable ? height * 0.58 : height * 0.46;
+    final tableLeft = (width - tableWidth) / 2;
+    final tableTop = (height - tableHeight) / 2;
 
     return Container(
       width: width,
@@ -619,115 +624,91 @@ class _RoomTable extends StatelessWidget {
               ]
             : null,
       ),
-      child: tableNumber == 9 && seats.length >= 16
-          ? Stack(
-              children: [
-                Positioned(
-                  left: 26,
-                  right: 26,
-                  top: 10,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final guest in [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]])
-                        _seatChip(context, guest),
-                    ],
-                  ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: tableLeft,
+            top: tableTop,
+            child: Container(
+              width: tableWidth,
+              height: tableHeight,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF8C3A),
+                border: Border.all(color: borderColor, width: 2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Tisch $tableNumber',
+                style: TextStyle(
+                  fontSize: isLongTable ? 16 : 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                Positioned(
-                  left: 10,
-                  top: 38,
-                  bottom: 38,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final guest in [seats[6], seats[7]]) _seatChip(context, guest),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  right: 10,
-                  top: 38,
-                  bottom: 38,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final guest in [seats[8], seats[9]]) _seatChip(context, guest),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 26,
-                  right: 26,
-                  bottom: 10,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final guest in [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]])
-                        _seatChip(context, guest),
-                    ],
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    'Tisch $tableNumber',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : Stack(
-              children: [
-                Positioned(
-                  left: 10,
-                  right: 10,
-                  top: 10,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ..._seatChips(context, tableNumber, seats, side: 'top'),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 10,
-                  right: 10,
-                  bottom: 10,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ..._seatChips(context, tableNumber, seats, side: 'bottom'),
-                    ],
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    'Tisch $tableNumber',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
+          ),
+          Positioned(
+            left: isLongTable ? 30 : 12,
+            right: isLongTable ? 30 : 12,
+            top: isLongTable ? 14 : 8,
+            child: _seatLine(
+              context,
+              isLongTable
+                  ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
+                  : seats.take((seats.length / 2).ceil()).toList(),
+              centered: true,
+              large: isLongTable,
+            ),
+          ),
+          Positioned(
+            left: isLongTable ? 30 : 12,
+            right: isLongTable ? 30 : 12,
+            bottom: isLongTable ? 14 : 8,
+            child: _seatLine(
+              context,
+              isLongTable
+                  ? [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]
+                  : seats.skip((seats.length / 2).ceil()).toList(),
+              centered: true,
+              large: isLongTable,
+            ),
+          ),
+          if (isLongTable) ...[
+            Positioned(
+              left: 12,
+              top: (height / 2) - 18,
+              child: _seatColumn(
+                context,
+                [seats[6], seats[7]],
+                large: true,
+              ),
+            ),
+            Positioned(
+              right: 12,
+              top: (height / 2) - 18,
+              child: _seatColumn(
+                context,
+                [seats[8], seats[9]],
+                large: true,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _seatChip(BuildContext context, Guest? guest) {
+  Widget _seatChip(BuildContext context, Guest? guest, {required bool large}) {
     if (guest == null) {
       return const SizedBox.shrink();
     }
 
     final name = guest.firstName.split(' ').first;
     return Container(
-      width: 28,
-      height: 18,
+      width: large ? 32 : 24,
+      height: large ? 18 : 14,
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
@@ -737,54 +718,57 @@ class _RoomTable extends StatelessWidget {
       ),
       child: Text(
         name,
-        style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w700),
+        style: TextStyle(fontSize: large ? 7 : 6, fontWeight: FontWeight.w700),
         overflow: TextOverflow.ellipsis,
       ),
     );
   }
 
-  List<Widget> _seatChips(BuildContext context, int tableNumber, List<Guest?> seats, {required String side}) {
-    final sideSeats = <Guest?>[];
-    final seatCount = seats.length;
-
-    if (tableNumber == 9 && seatCount == 16) {
-      if (side == 'top') {
-        sideSeats.addAll([seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]);
-      } else if (side == 'left') {
-        sideSeats.addAll([seats[6], seats[7]]);
-      } else if (side == 'right') {
-        sideSeats.addAll([seats[8], seats[9]]);
-      } else {
-        sideSeats.addAll([seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]);
-      }
-    } else {
-      final leftCount = (seatCount / 2).ceil();
-      if (side == 'top') {
-        sideSeats.addAll(seats.take(leftCount));
-      } else {
-        sideSeats.addAll(seats.skip(leftCount).take(leftCount));
+  Widget _seatLine(
+    BuildContext context,
+    List<Guest?> guests, {
+    required bool centered,
+    required bool large,
+  }) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < guests.length; i++) {
+      final chip = _seatChip(context, guests[i], large: large);
+      if (chip is! SizedBox) {
+        widgets.add(chip);
+        if (i != guests.length - 1) {
+          widgets.add(SizedBox(width: large ? 8 : 6));
+        }
       }
     }
 
-    return sideSeats.where((guest) => guest != null).map((guest) {
-      final name = guest!.firstName.split(' ').first;
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.black54, width: 1),
-          ),
-          child: Text(
-            name,
-            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      );
-    }).toList();
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  Widget _seatColumn(
+    BuildContext context,
+    List<Guest?> guests, {
+    required bool large,
+  }) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < guests.length; i++) {
+      final chip = _seatChip(context, guests[i], large: large);
+      if (chip is! SizedBox) {
+        widgets.add(chip);
+        if (i != guests.length - 1) {
+          widgets.add(SizedBox(height: large ? 8 : 6));
+        }
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: widgets,
+    );
   }
 }
 
