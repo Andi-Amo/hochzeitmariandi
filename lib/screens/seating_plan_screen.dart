@@ -389,7 +389,7 @@ class _SeatingPlanBody extends StatelessWidget {
       _RoomTablePosition(number: 6, left: 330, top: 430, width: 128, height: 82),
       _RoomTablePosition(number: 7, left: 510, top: 430, width: 128, height: 82),
       _RoomTablePosition(number: 8, left: 690, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 9, left: 250, top: 200, width: 420, height: 170),
+      _RoomTablePosition(number: 9, left: 245, top: 195, width: 460, height: 180),
     ];
   }
 
@@ -599,11 +599,11 @@ class _RoomTable extends StatelessWidget {
           ? Stack(
               children: [
                 Positioned(
-                  left: 18,
-                  right: 18,
-                  top: 12,
+                  left: 26,
+                  right: 26,
+                  top: 10,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       for (final guest in [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]])
                         _seatChip(context, guest),
@@ -611,33 +611,33 @@ class _RoomTable extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  left: 14,
-                  top: 32,
-                  bottom: 32,
+                  left: 10,
+                  top: 38,
+                  bottom: 38,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       for (final guest in [seats[6], seats[7]]) _seatChip(context, guest),
                     ],
                   ),
                 ),
                 Positioned(
-                  right: 14,
-                  top: 32,
-                  bottom: 32,
+                  right: 10,
+                  top: 38,
+                  bottom: 38,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       for (final guest in [seats[8], seats[9]]) _seatChip(context, guest),
                     ],
                   ),
                 ),
                 Positioned(
-                  left: 18,
-                  right: 18,
-                  bottom: 12,
+                  left: 26,
+                  right: 26,
+                  bottom: 10,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       for (final guest in [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]])
                         _seatChip(context, guest),
