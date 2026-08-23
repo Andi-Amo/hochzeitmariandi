@@ -595,41 +595,126 @@ class _RoomTable extends StatelessWidget {
               ]
             : null,
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 10,
-            right: 10,
-            top: 10,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: tableNumber == 9 && seats.length >= 16
+          ? Stack(
               children: [
-                ..._seatChips(context, tableNumber, seats, side: 'top'),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  top: 8,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (final guest in [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]])
+                        _seatChip(context, guest),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: 24,
+                  bottom: 24,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (final guest in [seats[6], seats[7]]) _seatChip(context, guest),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  top: 24,
+                  bottom: 24,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (final guest in [seats[8], seats[9]]) _seatChip(context, guest),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 8,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (final guest in [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]])
+                        _seatChip(context, guest),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    'Tisch $tableNumber',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Stack(
+              children: [
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  top: 10,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ..._seatChips(context, tableNumber, seats, side: 'top'),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 10,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ..._seatChips(context, tableNumber, seats, side: 'bottom'),
+                    ],
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    'Tisch $tableNumber',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          Positioned(
-            left: 10,
-            right: 10,
-            bottom: 10,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ..._seatChips(context, tableNumber, seats, side: 'bottom'),
-              ],
-            ),
-          ),
-          Center(
-            child: Text(
-              'Tisch $tableNumber',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
+    );
+  }
+
+  Widget _seatChip(BuildContext context, Guest? guest) {
+    if (guest == null) {
+      return const SizedBox(width: 18, height: 18);
+    }
+
+    final name = guest.firstName.split(' ').first;
+    return Container(
+      width: 28,
+      height: 18,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black54, width: 1),
+      ),
+      child: Text(
+        name,
+        style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w700),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -642,7 +727,7 @@ class _RoomTable extends StatelessWidget {
       if (side == 'top') {
         sideSeats.addAll([seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]);
       } else {
-        sideSeats.addAll([seats[6], seats[7], seats[8], seats[9], seats[10], seats[11]]);
+        sideSeats.addAll([seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]);
       }
     } else {
       final leftCount = (seatCount / 2).ceil();
