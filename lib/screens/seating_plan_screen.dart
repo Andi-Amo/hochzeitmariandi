@@ -389,7 +389,7 @@ class _SeatingPlanBody extends StatelessWidget {
       _RoomTablePosition(number: 6, left: 330, top: 430, width: 128, height: 82),
       _RoomTablePosition(number: 7, left: 510, top: 430, width: 128, height: 82),
       _RoomTablePosition(number: 8, left: 690, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 9, left: 285, top: 220, width: 310, height: 120),
+      _RoomTablePosition(number: 9, left: 250, top: 200, width: 420, height: 170),
     ];
   }
 
@@ -599,9 +599,9 @@ class _RoomTable extends StatelessWidget {
           ? Stack(
               children: [
                 Positioned(
-                  left: 10,
-                  right: 10,
-                  top: 8,
+                  left: 18,
+                  right: 18,
+                  top: 12,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -611,9 +611,9 @@ class _RoomTable extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  left: 8,
-                  top: 24,
-                  bottom: 24,
+                  left: 14,
+                  top: 32,
+                  bottom: 32,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -622,9 +622,9 @@ class _RoomTable extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  right: 8,
-                  top: 24,
-                  bottom: 24,
+                  right: 14,
+                  top: 32,
+                  bottom: 32,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -633,9 +633,9 @@ class _RoomTable extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  left: 10,
-                  right: 10,
-                  bottom: 8,
+                  left: 18,
+                  right: 18,
+                  bottom: 12,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
