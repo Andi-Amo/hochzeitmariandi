@@ -43,6 +43,142 @@ class SeatingPlanTableCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final seatCount = seats.length;
 
+    Widget tableLayout;
+    if (seatCount == 16) {
+      tableLayout = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < 6; i++) _seatSlot(context, i),
+            ],
+          ),
+          const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _seatSlot(context, 6),
+                    const SizedBox(height: 8),
+                    _seatSlot(context, 7),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  width: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade100,
+                    border: Border.all(color: Colors.brown, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Tisch $tableNumber',
+                      style: TextStyle(
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _seatSlot(context, 8),
+                    const SizedBox(height: 8),
+                    _seatSlot(context, 9),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 10; i < 16; i++) _seatSlot(context, i),
+            ],
+          ),
+        ],
+      );
+    } else {
+      tableLayout = Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < 3 && i < seatCount; i++)
+                _seatSlot(context, i),
+            ],
+          ),
+          const SizedBox(height: 10),
+          IntrinsicHeight(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (seatCount >= 4) _seatSlot(context, 3),
+                    if (seatCount >= 5) ...[
+                      const SizedBox(height: 8),
+                      _seatSlot(context, 4),
+                    ],
+                  ],
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade100,
+                    border: Border.all(color: Colors.brown, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Tisch $tableNumber',
+                      style: TextStyle(
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (seatCount >= 6) _seatSlot(context, 5),
+                    if (seatCount >= 7) ...[
+                      const SizedBox(height: 8),
+                      _seatSlot(context, 6),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (seatCount > 7)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 7; i < seatCount; i++) _seatSlot(context, i),
+              ],
+            ),
+        ],
+      );
+    }
+
     return Card(
       margin: margin,
       child: Padding(
@@ -63,77 +199,7 @@ class SeatingPlanTableCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Center(
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (var i = 0; i < 3 && i < seatCount; i++)
-                        _seatSlot(context, i),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  IntrinsicHeight(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            if (seatCount >= 4) _seatSlot(context, 3),
-                            if (seatCount >= 5) ...[
-                              const SizedBox(height: 8),
-                              _seatSlot(context, 4),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          width: 220,
-                          decoration: BoxDecoration(
-                            color: Colors.brown.shade100,
-                            border: Border.all(color: Colors.brown, width: 2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Tisch $tableNumber',
-                              style: TextStyle(
-                                color: Colors.brown.shade700,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            if (seatCount >= 6) _seatSlot(context, 5),
-                            if (seatCount >= 7) ...[
-                              const SizedBox(height: 8),
-                              _seatSlot(context, 6),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (seatCount > 7)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 7; i < seatCount; i++)
-                          _seatSlot(context, i),
-                      ],
-                    ),
-                ],
-              ),
-            ),
+            Center(child: tableLayout),
           ],
         ),
       ),
