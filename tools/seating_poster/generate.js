@@ -151,12 +151,12 @@ function guestsAt(tables, tableNumber, seatNumbers) {
     .filter(Boolean);
 }
 
-function distributedValues(count, start, end) {
+function distributedValues(count, startBoundary, endBoundary) {
   if (count === 0) return [];
-  if (count === 1) return [(start + end) / 2];
+  const spacing = (endBoundary - startBoundary) / (count + 1);
   return Array.from(
     { length: count },
-    (_, index) => start + ((end - start) * index) / (count - 1),
+    (_, index) => startBoundary + spacing * (index + 1),
   );
 }
 
@@ -171,7 +171,7 @@ function rotatePoint(cx, cy, dx, dy, angleDegrees) {
 function normalTable(tables, tableNumber, cx, cy, angleDegrees) {
   const horizontalSide = (seatNumbers, y) => {
     const guests = guestsAt(tables, tableNumber, seatNumbers);
-    const positions = distributedValues(guests.length, -48, 48);
+    const positions = distributedValues(guests.length, -96, 96);
     return guests.map((guest, index) => {
       const point = rotatePoint(cx, cy, positions[index], y, angleDegrees);
       return seat(guest, point.x, point.y);
@@ -179,7 +179,7 @@ function normalTable(tables, tableNumber, cx, cy, angleDegrees) {
   };
   const verticalSide = (seatNumbers, x) => {
     const guests = guestsAt(tables, tableNumber, seatNumbers);
-    const positions = distributedValues(guests.length, -26, 26);
+    const positions = distributedValues(guests.length, -78, 78);
     return guests.map((guest, index) => {
       const point = rotatePoint(cx, cy, x, positions[index], angleDegrees);
       return seat(guest, point.x, point.y);
@@ -205,14 +205,14 @@ function normalTable(tables, tableNumber, cx, cy, angleDegrees) {
 function longTable(tables, tableNumber, cx, cy) {
   const horizontalSide = (seatNumbers, y) => {
     const guests = guestsAt(tables, tableNumber, seatNumbers);
-    const positions = distributedValues(guests.length, -135, 135);
+    const positions = distributedValues(guests.length, -189, 189);
     return guests.map((guest, index) =>
       seat(guest, cx + positions[index], cy + y),
     );
   };
   const verticalSide = (seatNumbers, x) => {
     const guests = guestsAt(tables, tableNumber, seatNumbers);
-    const positions = distributedValues(guests.length, -25, 25);
+    const positions = distributedValues(guests.length, -75, 75);
     return guests.map((guest, index) =>
       seat(guest, cx + x, cy + positions[index]),
     );
@@ -348,6 +348,37 @@ function cornerIvy() {
   return `
     <g transform="translate(74 982)">${vine}</g>
     <g transform="translate(1608 982) scale(-1 1)">${vine}</g>`;
+}
+
+function frameFlorals() {
+  const upperCorner = `
+    <path d="M0 10 C30 -10 67 -13 100 6" class="ivy-stem"/>
+    ${ivyLeaf(22, 2, 0.62, -55, true)}
+    ${ivyLeaf(72, -3, 0.72, 28)}
+    ${blossom(45, -3, 0.72, -10)}
+    ${blossom(95, 8, 0.48, 22, true)}`;
+
+  const edgeSprig = `
+    <path d="M0 6 C22 -8 48 -8 69 6" class="ivy-stem"/>
+    ${ivyLeaf(16, 0, 0.48, -42)}
+    ${ivyLeaf(55, 0, 0.48, 42, true)}
+    ${blossom(35, -3, 0.56, 0)}`;
+
+  const sideSprig = `
+    <path d="M0 0 C18 -12 38 -12 56 0" class="ivy-stem"/>
+    ${ivyLeaf(13, -3, 0.45, -48, true)}
+    ${ivyLeaf(46, -3, 0.45, 48)}
+    ${blossom(29, -5, 0.48, 8, true)}`;
+
+  return `
+    <g transform="translate(78 204)">${upperCorner}</g>
+    <g transform="translate(1604 204) scale(-1 1)">${upperCorner}</g>
+    <g transform="translate(500 200)">${edgeSprig}</g>
+    <g transform="translate(1182 200) scale(-1 1)">${edgeSprig}</g>
+    <g transform="translate(67 398) rotate(-90)">${sideSprig}</g>
+    <g transform="translate(1615 398) rotate(90)">${sideSprig}</g>
+    <g transform="translate(67 914) rotate(-90)">${sideSprig}</g>
+    <g transform="translate(1615 914) rotate(90)">${sideSprig}</g>`;
 }
 
 function embeddedFont(fontPath) {
@@ -520,6 +551,7 @@ function posterHtml(tables, qr) {
 
     <rect x="60" y="190" width="1562" height="890" rx="34" class="room"/>
     <rect x="72" y="202" width="1538" height="866" rx="27" class="room-inner"/>
+    ${frameFlorals()}
 
     ${cornerIvy()}
     <g transform="translate(98 630)">

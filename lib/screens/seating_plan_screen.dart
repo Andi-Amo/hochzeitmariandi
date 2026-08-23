@@ -359,10 +359,17 @@ class _GuestSearchPanelState extends State<_GuestSearchPanel> {
   }
 }
 
-class _SeatingPlanBody extends StatelessWidget {
+class _SeatingPlanBody extends StatefulWidget {
   final Guest currentGuest;
 
   const _SeatingPlanBody({required this.currentGuest});
+
+  @override
+  State<_SeatingPlanBody> createState() => _SeatingPlanBodyState();
+}
+
+class _SeatingPlanBodyState extends State<_SeatingPlanBody> {
+  bool? _showOverviewOverride;
 
   int _seatCountForTable(int tableNumber) {
     return tableNumber == 9 ? 16 : 10;
@@ -417,113 +424,197 @@ class _SeatingPlanBody extends StatelessWidget {
           return _RoomTable(
             tableNumber: tableNumber,
             seats: _buildSeatsForTable(tableNumber, guestsAtTable),
-            highlightedGuestId: currentGuest.id,
+            highlightedGuestId: widget.currentGuest.id,
             isHighlighted: guestsAtTable.any(
-              (guest) => guest.id == currentGuest.id,
+              (guest) => guest.id == widget.currentGuest.id,
             ),
           );
         }
 
-        return SingleChildScrollView(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1500),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 720;
+            final currentTableNumber = int.tryParse(
+              widget.currentGuest.tableId ?? '',
+            );
+            final hasOwnTable =
+                currentTableNumber != null &&
+                tables.containsKey(currentTableNumber);
+            final showOverview =
+                (_showOverviewOverride ?? !isCompact) || !hasOwnTable;
+
+            final floorPlan = Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const _EingangLabel(),
+                const SizedBox(width: 24),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final tableNumber in _backRowTables) ...[
+                          buildTable(tableNumber),
+                          if (tableNumber != _backRowTables.last)
+                            const SizedBox(width: 20),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE9F5E6),
-                        border: Border.all(color: Colors.black54, width: 2),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      child: AspectRatio(
-                        aspectRatio: 2.7,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const _EingangLabel(),
-                              const SizedBox(width: 24),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      for (final tableNumber
-                                          in _backRowTables) ...[
-                                        buildTable(tableNumber),
-                                        if (tableNumber != _backRowTables.last)
-                                          const SizedBox(width: 20),
-                                      ],
-                                    ],
-                                  ),
-                                  const SizedBox(height: 52),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      for (final tableNumber
-                                          in _frontRowTables) ...[
-                                        buildTable(tableNumber),
-                                        if (tableNumber != _frontRowTables.last)
-                                          const SizedBox(width: 20),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    const SizedBox(height: 52),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final tableNumber in _frontRowTables) ...[
+                          buildTable(tableNumber),
+                          if (tableNumber != _frontRowTables.last)
+                            const SizedBox(width: 20),
+                        ],
+                      ],
                     ),
-                    if (unseated.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          'Ungesetzt',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final guest in unseated)
-                              _GuestListChip(
-                                guest: guest,
-                                isHighlighted: guest.id == currentGuest.id,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
+              ],
+            );
+
+            Widget planContent;
+            if (!showOverview) {
+              planContent = Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Dein Platz an Tisch $currentTableNumber',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 300,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: buildTable(currentTableNumber),
+                    ),
+                  ),
+                ],
+              );
+            } else if (isCompact) {
+              planContent = Column(
+                children: [
+                  SizedBox(
+                    height: 300,
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 5,
+                      boundaryMargin: const EdgeInsets.all(80),
+                      child: FittedBox(fit: BoxFit.contain, child: floorPlan),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mit zwei Fingern vergrößern und verschieben.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              );
+            } else {
+              planContent = AspectRatio(
+                aspectRatio: 2.7,
+                child: FittedBox(fit: BoxFit.contain, child: floorPlan),
+              );
+            }
+
+            return SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1500),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 8 : 20,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          showOverview
+                              ? 'Hallo ${widget.currentGuest.fullName}, dein Tisch ist hervorgehoben.'
+                              : 'Hallo ${widget.currentGuest.fullName}, hier sitzt du.',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        if (isCompact && hasOwnTable) ...[
+                          const SizedBox(height: 14),
+                          Center(
+                            child: SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: false,
+                                  icon: Icon(Icons.table_restaurant),
+                                  label: Text('Dein Tisch'),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  icon: Icon(Icons.map_outlined),
+                                  label: Text('Übersicht'),
+                                ),
+                              ],
+                              selected: {showOverview},
+                              onSelectionChanged: (selection) {
+                                setState(() {
+                                  _showOverviewOverride = selection.first;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F5E6),
+                            border: Border.all(color: Colors.black54, width: 2),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          width: double.infinity,
+                          padding: EdgeInsets.all(isCompact ? 12 : 24),
+                          child: planContent,
+                        ),
+                        if (showOverview && unseated.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'Ungesetzt',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final guest in unseated)
+                                  _GuestListChip(
+                                    guest: guest,
+                                    isHighlighted:
+                                        guest.id == widget.currentGuest.id,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
