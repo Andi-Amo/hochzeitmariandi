@@ -70,7 +70,7 @@ class SeatingPlanTableCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  width: 220,
+                  width: tableNumber == 9 ? 360 : 220,
                   decoration: BoxDecoration(
                     color: Colors.brown.shade100,
                     border: Border.all(color: Colors.brown, width: 2),

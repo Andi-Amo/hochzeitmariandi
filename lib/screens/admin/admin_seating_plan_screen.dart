@@ -298,12 +298,12 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
               builder: (context, constraints) {
                 const gap = 16.0;
                 final cardWidth = (constraints.maxWidth - 32 - gap) / 2;
+                final wideTableWidth = constraints.maxWidth - 32;
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Column(
-                    children: [
-                      Padding(
+                    children: [                      Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           '9 Tische mit flexibel vielen Plätzen • Ziehen zum Verschieben/Tauschen, oder Tippen für Dialog',
@@ -329,7 +329,7 @@ class _AdminSeatingPlanScreenState extends State<AdminSeatingPlanScreen> {
                               tableNum++
                             )
                               SizedBox(
-                                width: cardWidth,
+                                width: tableNum == 9 ? wideTableWidth : cardWidth,
                                 child: SeatingPlanTableCard(
                                   tableNumber: tableNum,
                                   seats: _buildSeatsForTable(

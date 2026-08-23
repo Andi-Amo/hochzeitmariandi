@@ -381,15 +381,15 @@ class _SeatingPlanBody extends StatelessWidget {
 
   List<_RoomTablePosition> _tablePositions() {
     return const [
-      _RoomTablePosition(number: 1, left: 90, top: 80, width: 128, height: 82),
-      _RoomTablePosition(number: 2, left: 240, top: 80, width: 128, height: 82),
-      _RoomTablePosition(number: 3, left: 390, top: 80, width: 128, height: 82),
-      _RoomTablePosition(number: 4, left: 540, top: 80, width: 128, height: 82),
-      _RoomTablePosition(number: 5, left: 150, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 6, left: 330, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 7, left: 510, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 8, left: 690, top: 430, width: 128, height: 82),
-      _RoomTablePosition(number: 9, left: 245, top: 195, width: 460, height: 180),
+      _RoomTablePosition(number: 1, left: 90, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 2, left: 270, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 3, left: 450, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 4, left: 630, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 5, left: 165, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 6, left: 345, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 7, left: 525, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 8, left: 705, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 9, left: 250, top: 190, width: 500, height: 190),
     ];
   }
 
@@ -444,11 +444,11 @@ class _SeatingPlanBody extends StatelessWidget {
                             child: Stack(
                               children: [
                                 Positioned(
-                                  left: 38,
-                                  top: 26,
+                                  left: 40,
+                                  top: 28,
                                   child: Container(
-                                    width: 70,
-                                    height: 44,
+                                    width: 72,
+                                    height: 46,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       border: Border.all(color: Colors.black54),
@@ -456,14 +456,38 @@ class _SeatingPlanBody extends StatelessWidget {
                                   ),
                                 ),
                                 Positioned(
-                                  right: 42,
-                                  top: 22,
+                                  right: 40,
+                                  top: 28,
                                   child: Container(
-                                    width: 90,
-                                    height: 56,
+                                    width: 94,
+                                    height: 60,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       border: Border.all(color: Colors.black54),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 120,
+                                  top: 20,
+                                  child: Container(
+                                    width: 90,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.35),
+                                      border: Border.all(color: Colors.black54, width: 1.5),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 150,
+                                  top: 24,
+                                  child: Container(
+                                    width: 120,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.35),
+                                      border: Border.all(color: Colors.black54, width: 1.5),
                                     ),
                                   ),
                                 ),
