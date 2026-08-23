@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -570,6 +571,11 @@ class _RoomTable extends StatelessWidget {
 
   bool get _isLongTable => tableNumber == 9 && seats.length >= 16;
 
+  double get _rotationAngle {
+    if (_isLongTable) return 0;
+    return tableNumber.isOdd ? -math.pi / 3 : math.pi / 3;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLong = _isLongTable;
@@ -605,51 +611,60 @@ class _RoomTable extends StatelessWidget {
               ]
             : null,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isHighlighted) ...[
-            Icon(
-              Icons.star_rounded,
-              size: isLong ? 18 : 15,
-              color: Colors.black87,
+      child: Transform.rotate(
+        angle: -_rotationAngle,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isHighlighted) ...[
+              Icon(
+                Icons.star_rounded,
+                size: isLong ? 18 : 15,
+                color: Colors.black87,
+              ),
+              const SizedBox(width: 3),
+            ],
+            Text(
+              'Tisch $tableNumber',
+              style: TextStyle(
+                fontSize: isLong ? 16 : 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-            const SizedBox(width: 3),
           ],
-          Text(
-            'Tisch $tableNumber',
-            style: TextStyle(
-              fontSize: isLong ? 16 : 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-        ],
+        ),
       ),
     );
 
-    return Transform.rotate(
-      angle: isLong ? 0 : -0.08,
-      child: _PulsingTableHighlight(
-        isHighlighted: isHighlighted,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _seatRow(context, topSeats, large: isLong),
-            const SizedBox(height: 6),
-            Row(
+    return SizedBox(
+      width: isLong ? 330 : 250,
+      height: 250,
+      child: Center(
+        child: Transform.rotate(
+          angle: _rotationAngle,
+          child: _PulsingTableHighlight(
+            isHighlighted: isHighlighted,
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _seatColumn(context, leftSeats, large: isLong),
-                const SizedBox(width: 8),
-                tableBox,
-                const SizedBox(width: 8),
-                _seatColumn(context, rightSeats, large: isLong),
+                _seatRow(context, topSeats, large: isLong),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _seatColumn(context, leftSeats, large: isLong),
+                    const SizedBox(width: 8),
+                    tableBox,
+                    const SizedBox(width: 8),
+                    _seatColumn(context, rightSeats, large: isLong),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                _seatRow(context, bottomSeats, large: isLong),
               ],
             ),
-            const SizedBox(height: 6),
-            _seatRow(context, bottomSeats, large: isLong),
-          ],
+          ),
         ),
       ),
     );
@@ -659,43 +674,57 @@ class _RoomTable extends StatelessWidget {
     final isSeatHighlighted = guest.id == highlightedGuestId;
     final size = large ? 48.0 : 40.0;
 
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSeatHighlighted
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Colors.brown.shade100,
-        border: Border.all(
-          color: isSeatHighlighted ? Colors.amber : Colors.black54,
-          width: isSeatHighlighted ? 2 : 1,
+    return Transform.rotate(
+      angle: -_rotationAngle,
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSeatHighlighted
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Colors.brown.shade100,
+          border: Border.all(
+            color: isSeatHighlighted ? Colors.amber : Colors.black54,
+            width: isSeatHighlighted ? 2 : 1,
+          ),
+          boxShadow: isSeatHighlighted
+              ? [
+                  BoxShadow(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
-        boxShadow: isSeatHighlighted
-            ? [
-                BoxShadow(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _seatNameLine(guest.firstName),
+            _seatNameLine(guest.lastName),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _seatNameLine(String name) {
+    return Flexible(
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
-          guest.fullName,
-          maxLines: 2,
-          softWrap: true,
+          name,
+          maxLines: 1,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 14,
             fontWeight: FontWeight.w700,
-            height: 1.0,
+            height: 1,
             color: Colors.black87,
           ),
         ),
