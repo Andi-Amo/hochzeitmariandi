@@ -721,7 +721,7 @@ class _RoomTable extends StatelessWidget {
 
   Widget _seatChip(BuildContext context, Guest? guest) {
     if (guest == null) {
-      return const SizedBox(width: 18, height: 18);
+      return const SizedBox.shrink();
     }
 
     final name = guest.firstName.split(' ').first;
@@ -750,6 +750,10 @@ class _RoomTable extends StatelessWidget {
     if (tableNumber == 9 && seatCount == 16) {
       if (side == 'top') {
         sideSeats.addAll([seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]);
+      } else if (side == 'left') {
+        sideSeats.addAll([seats[6], seats[7]]);
+      } else if (side == 'right') {
+        sideSeats.addAll([seats[8], seats[9]]);
       } else {
         sideSeats.addAll([seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]);
       }
@@ -762,12 +766,8 @@ class _RoomTable extends StatelessWidget {
       }
     }
 
-    return sideSeats.map((guest) {
-      if (guest == null) {
-        return const SizedBox(width: 16, height: 16);
-      }
-
-      final name = guest.firstName.split(' ').first;
+    return sideSeats.where((guest) => guest != null).map((guest) {
+      final name = guest!.firstName.split(' ').first;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
