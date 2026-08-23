@@ -379,19 +379,11 @@ class _SeatingPlanBody extends StatelessWidget {
     return seats;
   }
 
-  List<_RoomTablePosition> _tablePositions() {
-    return const [
-      _RoomTablePosition(number: 5, left: 95, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 4, left: 275, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 3, left: 455, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 1, left: 635, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 8, left: 95, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 7, left: 275, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 6, left: 455, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 2, left: 635, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 9, left: 300, top: 255, width: 360, height: 120),
-    ];
-  }
+  // The venue's actual layout (see images/canvas.png) has four square
+  // tables in the back row and a long banquet table plus four more square
+  // tables in the front row, closest to the entrance.
+  static const List<int> _backRowTables = [7, 5, 3, 1];
+  static const List<int> _frontRowTables = [9, 8, 6, 4, 2];
 
   @override
   Widget build(BuildContext context) {
@@ -417,202 +409,166 @@ class _SeatingPlanBody extends StatelessWidget {
           }
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE9F5E6),
-                            border: Border.all(color: Colors.black54, width: 2),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: SizedBox(
-                            height: 640,
-                            child: Stack(
+        Widget buildTable(int tableNumber) {
+          final guestsAtTable = tables[tableNumber] ?? const [];
+          return _RoomTable(
+            tableNumber: tableNumber,
+            seats: _buildSeatsForTable(tableNumber, guestsAtTable),
+            highlightedGuestId: currentGuest.id,
+            isHighlighted: guestsAtTable.any((guest) => guest.id == currentGuest.id),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hallo ${currentGuest.fullName}, dein Tisch ist hervorgehoben.',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE9F5E6),
+                        border: Border.all(color: Colors.black54, width: 2),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.all(24),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const _EingangLabel(),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: Column(
                               children: [
-                                Positioned(
-                                  left: 40,
-                                  top: 28,
-                                  child: Container(
-                                    width: 72,
-                                    height: 46,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Colors.black54),
-                                    ),
-                                  ),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 20,
+                                  runSpacing: 20,
+                                  children: [
+                                    for (final tableNumber in _backRowTables)
+                                      buildTable(tableNumber),
+                                  ],
                                 ),
-                                Positioned(
-                                  right: 40,
-                                  top: 28,
-                                  child: Container(
-                                    width: 94,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Colors.black54),
-                                    ),
-                                  ),
+                                const SizedBox(height: 28),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 20,
+                                  runSpacing: 20,
+                                  children: [
+                                    for (final tableNumber in _frontRowTables)
+                                      buildTable(tableNumber),
+                                  ],
                                 ),
-                                Positioned(
-                                  left: 120,
-                                  top: 20,
-                                  child: Container(
-                                    width: 90,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.35),
-                                      border: Border.all(color: Colors.black54, width: 1.5),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  right: 150,
-                                  top: 24,
-                                  child: Container(
-                                    width: 120,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.35),
-                                      border: Border.all(color: Colors.black54, width: 1.5),
-                                    ),
-                                  ),
-                                ),
-                                for (final position in _tablePositions())
-                                  Positioned(
-                                    left: position.left.toDouble(),
-                                    top: position.top.toDouble(),
-                                    child: _RoomTable(
-                                      tableNumber: position.number,
-                                      seats: _buildSeatsForTable(
-                                        position.number,
-                                        tables[position.number] ?? const [],
-                                      ),
-                                      width: position.width.toDouble(),
-                                      height: position.height.toDouble(),
-                                      highlightedGuestId: currentGuest.id,
-                                      isHighlighted: tables[position.number]?.any(
-                                            (guest) => guest.id == currentGuest.id,
-                                          ) ??
-                                          false,
-                                    ),
-                                  ),
-                                Positioned(
-                                  left: 18,
-                                  top: 250,
-                                  child: RotatedBox(
-                                    quarterTurns: 1,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border.all(color: Colors.black54),
-                                      ),
-                                      child: const Text('Eingang'),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (unseated.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              'Ungesetzt',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final guest in unseated)
-                                  _GuestListChip(
-                                    guest: guest,
-                                    isHighlighted: guest.id == currentGuest.id,
-                                  ),
                               ],
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
+                    if (unseated.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          'Ungesetzt',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final guest in unseated)
+                              _GuestListChip(
+                                guest: guest,
+                                isHighlighted: guest.id == currentGuest.id,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _RoomTablePosition {
-  final int number;
-  final int left;
-  final int top;
-  final int width;
-  final int height;
+/// Small rotated label marking the entrance ("Eingang"), matching the
+/// venue's floor plan (images/canvas.png).
+class _EingangLabel extends StatelessWidget {
+  const _EingangLabel();
 
-  const _RoomTablePosition({
-    required this.number,
-    required this.left,
-    required this.top,
-    required this.width,
-    required this.height,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black54),
+      ),
+      child: const RotatedBox(
+        quarterTurns: 1,
+        child: Text('Eingang'),
+      ),
+    );
+  }
 }
 
+/// A single table rendered with its own natural size (no hard-coded pixel
+/// positions), so it can never overflow regardless of how many seats are
+/// filled or how long guest names are. Tables lay themselves out as:
+/// a row of seats on top, a row on the bottom, and the table itself
+/// flanked by a column of seats on the left and right.
 class _RoomTable extends StatelessWidget {
   final int tableNumber;
   final List<Guest?> seats;
-  final double width;
-  final double height;
   final String highlightedGuestId;
   final bool isHighlighted;
 
   const _RoomTable({
     required this.tableNumber,
     required this.seats,
-    required this.width,
-    required this.height,
     required this.highlightedGuestId,
     required this.isHighlighted,
   });
 
+  bool get _isLongTable => tableNumber == 9 && seats.length >= 16;
+
   @override
   Widget build(BuildContext context) {
+    final isLong = _isLongTable;
     final accent = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.orange;
     final borderColor = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.black54;
-    final isLongTable = tableNumber == 9 && seats.length >= 16;
-    final tableWidth = isLongTable ? width * 0.68 : width * 0.58;
-    final tableHeight = isLongTable ? height * 0.52 : height * 0.40;
-    final tableLeft = (width - tableWidth) / 2;
-    final tableTop = (height - tableHeight) / 2;
 
-    return Container(
-      width: width,
-      height: height,
+    final topSeats = isLong
+        ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
+        : [seats[0], seats[1], seats[2]];
+    final leftSeats = isLong ? [seats[6], seats[7]] : [seats[3], seats[4]];
+    final rightSeats = isLong ? [seats[8], seats[9]] : [seats[5], seats[6]];
+    final bottomSeats = isLong
+        ? [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]
+        : [seats[7], seats[8], seats[9]];
+
+    final tableBox = Container(
+      width: isLong ? 170.0 : 92.0,
+      height: isLong ? 64.0 : 52.0,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFFFF8C3A),
         border: Border.all(color: borderColor, width: 2),
@@ -627,112 +583,56 @@ class _RoomTable extends StatelessWidget {
               ]
             : null,
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: tableLeft,
-            top: tableTop,
-            child: Container(
-              width: tableWidth,
-              height: tableHeight,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF8C3A),
-                border: Border.all(color: borderColor, width: 2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'Tisch $tableNumber',
-                style: TextStyle(
-                  fontSize: isLongTable ? 16 : 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: isLongTable ? 20 : 10,
-            right: isLongTable ? 20 : 10,
-            top: isLongTable ? 12 : 8,
-            child: _seatLine(
-              context,
-              isLongTable
-                  ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
-                  : seats.take((seats.length / 2).ceil()).toList(),
-              highlightedGuestId: highlightedGuestId,
-              centered: true,
-              large: isLongTable,
-            ),
-          ),
-          Positioned(
-            left: isLongTable ? 20 : 10,
-            right: isLongTable ? 20 : 10,
-            bottom: isLongTable ? 12 : 8,
-            child: _seatLine(
-              context,
-              isLongTable
-                  ? [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]
-                  : seats.skip((seats.length / 2).ceil()).toList(),
-              highlightedGuestId: highlightedGuestId,
-              centered: true,
-              large: isLongTable,
-            ),
-          ),
-          if (isLongTable) ...[
-            Positioned(
-              left: 10,
-              top: (height / 2) - 18,
-              child: _seatColumn(
-                context,
-                [seats[6], seats[7]],
-                highlightedGuestId: highlightedGuestId,
-                large: true,
-              ),
-            ),
-            Positioned(
-              right: 10,
-              top: (height / 2) - 18,
-              child: _seatColumn(
-                context,
-                [seats[8], seats[9]],
-                highlightedGuestId: highlightedGuestId,
-                large: true,
-              ),
-            ),
-          ],
-        ],
+      child: Text(
+        'Tisch $tableNumber',
+        style: TextStyle(
+          fontSize: isLong ? 16 : 13,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
       ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _seatRow(context, topSeats, large: isLong),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _seatColumn(context, leftSeats, large: isLong),
+            const SizedBox(width: 8),
+            tableBox,
+            const SizedBox(width: 8),
+            _seatColumn(context, rightSeats, large: isLong),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _seatRow(context, bottomSeats, large: isLong),
+      ],
     );
   }
 
-  Widget _seatChip(
-    BuildContext context,
-    Guest? guest, {
-    required bool large,
-    required bool isHighlighted,
-  }) {
-    if (guest == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _seatChip(BuildContext context, Guest guest, {required bool large}) {
+    final isSeatHighlighted = guest.id == highlightedGuestId;
+    final size = large ? 48.0 : 40.0;
 
-    final name = guest.firstName.split(' ').first;
     return Container(
-      width: large ? 26 : 18,
-      height: large ? 16 : 12,
+      width: size,
+      height: size,
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: isHighlighted
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(6),
+        shape: BoxShape.circle,
+        color: isSeatHighlighted
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Colors.brown.shade100,
         border: Border.all(
-          color: isHighlighted ? Colors.amber : Colors.black54,
-          width: isHighlighted ? 2 : 1,
+          color: isSeatHighlighted ? Colors.amber : Colors.black54,
+          width: isSeatHighlighted ? 2 : 1,
         ),
-        boxShadow: isHighlighted
+        boxShadow: isSeatHighlighted
             ? [
                 BoxShadow(
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
@@ -742,201 +642,45 @@ class _RoomTable extends StatelessWidget {
               ]
             : null,
       ),
-      child: Text(
-        name,
-        style: TextStyle(
-          fontSize: large ? 7 : 5,
-          fontWeight: FontWeight.w700,
-          color: isHighlighted ? Colors.white : null,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
-  Widget _seatLine(
-    BuildContext context,
-    List<Guest?> guests, {
-    required String highlightedGuestId,
-    required bool centered,
-    required bool large,
-  }) {
-    final widgets = <Widget>[];
-    for (var i = 0; i < guests.length; i++) {
-      final chip = _seatChip(
-        context,
-        guests[i],
-        large: large,
-        isHighlighted: guests[i]?.id == highlightedGuestId,
-      );
-      if (chip is! SizedBox) {
-        widgets.add(chip);
-        if (i != guests.length - 1) {
-          widgets.add(SizedBox(width: large ? 6 : 4));
-        }
-      }
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
-      children: widgets,
-    );
-  }
-
-  Widget _seatColumn(
-    BuildContext context,
-    List<Guest?> guests, {
-    required String highlightedGuestId,
-    required bool large,
-  }) {
-    final widgets = <Widget>[];
-    for (var i = 0; i < guests.length; i++) {
-      final chip = _seatChip(
-        context,
-        guests[i],
-        large: large,
-        isHighlighted: guests[i]?.id == highlightedGuestId,
-      );
-      if (chip is! SizedBox) {
-        widgets.add(chip);
-        if (i != guests.length - 1) {
-          widgets.add(SizedBox(height: large ? 6 : 4));
-        }
-      }
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: widgets,
-    );
-  }
-}
-
-class _GuestSeatCard extends StatefulWidget {
-  final Guest guest;
-  final bool isHighlighted;
-  final int seatNumber;
-
-  const _GuestSeatCard({
-    required this.guest,
-    required this.isHighlighted,
-    required this.seatNumber,
-  });
-
-  @override
-  State<_GuestSeatCard> createState() => _GuestSeatCardState();
-}
-
-class _GuestSeatCardState extends State<_GuestSeatCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _scale = Tween<double>(
-      begin: 0.96,
-      end: 1.08,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    if (widget.isHighlighted) {
-      _controller.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _GuestSeatCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isHighlighted && !_controller.isAnimating) {
-      _controller.repeat(reverse: true);
-    } else if (!widget.isHighlighted && _controller.isAnimating) {
-      _controller.stop();
-      _controller.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final accent = widget.isHighlighted ? colorScheme.primary : Colors.brown;
-    final background = widget.isHighlighted
-        ? Color.lerp(
-            colorScheme.primaryContainer,
-            colorScheme.tertiaryContainer,
-            _controller.value,
-          )!
-        : Colors.brown.shade100;
-
-    return ScaleTransition(
-      scale: widget.isHighlighted ? _scale : const AlwaysStoppedAnimation(1),
-      child: SizedBox(
-        width: 64,
-        height: 64,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: background,
-            border: Border.all(color: accent, width: 2),
-            boxShadow: widget.isHighlighted
-                ? [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.45),
-                      blurRadius: 18,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.guest.isChild ? Icons.child_care : Icons.person,
-                  size: 16,
-                  color: accent,
-                ),
-                if (widget.isHighlighted)
-                  const Icon(Icons.star, size: 10, color: Colors.amber),
-                Text(
-                  widget.guest.firstName.split(' ').first,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    height: 1.0,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  widget.seatNumber.toString(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: accent,
-                    fontWeight: FontWeight.w600,
-                    height: 1.0,
-                  ),
-                ),
-              ],
-            ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          guest.fullName,
+          maxLines: 2,
+          softWrap: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            height: 1.0,
+            color: Colors.black87,
           ),
         ),
       ),
     );
+  }
+
+  /// Builds a horizontal line of seat chips, skipping unassigned seats
+  /// entirely so the table stays compact instead of showing empty gaps.
+  Widget _seatRow(BuildContext context, List<Guest?> guests, {required bool large}) {
+    final chips = <Widget>[];
+    for (final guest in guests) {
+      if (guest == null) continue;
+      if (chips.isNotEmpty) chips.add(SizedBox(width: large ? 6 : 4));
+      chips.add(_seatChip(context, guest, large: large));
+    }
+    return Row(mainAxisSize: MainAxisSize.min, children: chips);
+  }
+
+  /// Same as [_seatRow] but stacked vertically for the left/right sides.
+  Widget _seatColumn(BuildContext context, List<Guest?> guests, {required bool large}) {
+    final chips = <Widget>[];
+    for (final guest in guests) {
+      if (guest == null) continue;
+      if (chips.isNotEmpty) chips.add(SizedBox(height: large ? 6 : 4));
+      chips.add(_seatChip(context, guest, large: large));
+    }
+    return Column(mainAxisSize: MainAxisSize.min, children: chips);
   }
 }
 
