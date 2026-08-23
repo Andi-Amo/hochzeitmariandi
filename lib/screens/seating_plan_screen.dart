@@ -381,15 +381,15 @@ class _SeatingPlanBody extends StatelessWidget {
 
   List<_RoomTablePosition> _tablePositions() {
     return const [
-      _RoomTablePosition(number: 1, left: 90, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 2, left: 270, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 3, left: 450, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 4, left: 630, top: 72, width: 140, height: 90),
-      _RoomTablePosition(number: 5, left: 165, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 6, left: 345, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 7, left: 525, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 8, left: 705, top: 440, width: 140, height: 90),
-      _RoomTablePosition(number: 9, left: 250, top: 190, width: 500, height: 190),
+      _RoomTablePosition(number: 5, left: 95, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 4, left: 275, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 3, left: 455, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 1, left: 635, top: 72, width: 140, height: 90),
+      _RoomTablePosition(number: 8, left: 95, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 7, left: 275, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 6, left: 455, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 2, left: 635, top: 440, width: 140, height: 90),
+      _RoomTablePosition(number: 9, left: 300, top: 255, width: 360, height: 120),
     ];
   }
 
@@ -503,6 +503,7 @@ class _SeatingPlanBody extends StatelessWidget {
                                       ),
                                       width: position.width.toDouble(),
                                       height: position.height.toDouble(),
+                                      highlightedGuestId: currentGuest.id,
                                       isHighlighted: tables[position.number]?.any(
                                             (guest) => guest.id == currentGuest.id,
                                           ) ??
@@ -587,6 +588,7 @@ class _RoomTable extends StatelessWidget {
   final List<Guest?> seats;
   final double width;
   final double height;
+  final String highlightedGuestId;
   final bool isHighlighted;
 
   const _RoomTable({
@@ -594,6 +596,7 @@ class _RoomTable extends StatelessWidget {
     required this.seats,
     required this.width,
     required this.height,
+    required this.highlightedGuestId,
     required this.isHighlighted,
   });
 
@@ -602,8 +605,8 @@ class _RoomTable extends StatelessWidget {
     final accent = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.orange;
     final borderColor = isHighlighted ? Theme.of(context).colorScheme.primary : Colors.black54;
     final isLongTable = tableNumber == 9 && seats.length >= 16;
-    final tableWidth = isLongTable ? width * 0.74 : width * 0.62;
-    final tableHeight = isLongTable ? height * 0.58 : height * 0.46;
+    final tableWidth = isLongTable ? width * 0.68 : width * 0.58;
+    final tableHeight = isLongTable ? height * 0.52 : height * 0.40;
     final tableLeft = (width - tableWidth) / 2;
     final tableTop = (height - tableHeight) / 2;
 
@@ -650,47 +653,51 @@ class _RoomTable extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: isLongTable ? 30 : 12,
-            right: isLongTable ? 30 : 12,
-            top: isLongTable ? 14 : 8,
+            left: isLongTable ? 20 : 10,
+            right: isLongTable ? 20 : 10,
+            top: isLongTable ? 12 : 8,
             child: _seatLine(
               context,
               isLongTable
                   ? [seats[0], seats[1], seats[2], seats[3], seats[4], seats[5]]
                   : seats.take((seats.length / 2).ceil()).toList(),
+              highlightedGuestId: highlightedGuestId,
               centered: true,
               large: isLongTable,
             ),
           ),
           Positioned(
-            left: isLongTable ? 30 : 12,
-            right: isLongTable ? 30 : 12,
-            bottom: isLongTable ? 14 : 8,
+            left: isLongTable ? 20 : 10,
+            right: isLongTable ? 20 : 10,
+            bottom: isLongTable ? 12 : 8,
             child: _seatLine(
               context,
               isLongTable
                   ? [seats[10], seats[11], seats[12], seats[13], seats[14], seats[15]]
                   : seats.skip((seats.length / 2).ceil()).toList(),
+              highlightedGuestId: highlightedGuestId,
               centered: true,
               large: isLongTable,
             ),
           ),
           if (isLongTable) ...[
             Positioned(
-              left: 12,
+              left: 10,
               top: (height / 2) - 18,
               child: _seatColumn(
                 context,
                 [seats[6], seats[7]],
+                highlightedGuestId: highlightedGuestId,
                 large: true,
               ),
             ),
             Positioned(
-              right: 12,
+              right: 10,
               top: (height / 2) - 18,
               child: _seatColumn(
                 context,
                 [seats[8], seats[9]],
+                highlightedGuestId: highlightedGuestId,
                 large: true,
               ),
             ),
@@ -700,25 +707,48 @@ class _RoomTable extends StatelessWidget {
     );
   }
 
-  Widget _seatChip(BuildContext context, Guest? guest, {required bool large}) {
+  Widget _seatChip(
+    BuildContext context,
+    Guest? guest, {
+    required bool large,
+    required bool isHighlighted,
+  }) {
     if (guest == null) {
       return const SizedBox.shrink();
     }
 
     final name = guest.firstName.split(' ').first;
     return Container(
-      width: large ? 32 : 24,
-      height: large ? 18 : 14,
+      width: large ? 26 : 18,
+      height: large ? 16 : 12,
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: isHighlighted
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black54, width: 1),
+        border: Border.all(
+          color: isHighlighted ? Colors.amber : Colors.black54,
+          width: isHighlighted ? 2 : 1,
+        ),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
       ),
       child: Text(
         name,
-        style: TextStyle(fontSize: large ? 7 : 6, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          fontSize: large ? 7 : 5,
+          fontWeight: FontWeight.w700,
+          color: isHighlighted ? Colors.white : null,
+        ),
         overflow: TextOverflow.ellipsis,
       ),
     );
@@ -727,22 +757,28 @@ class _RoomTable extends StatelessWidget {
   Widget _seatLine(
     BuildContext context,
     List<Guest?> guests, {
+    required String highlightedGuestId,
     required bool centered,
     required bool large,
   }) {
     final widgets = <Widget>[];
     for (var i = 0; i < guests.length; i++) {
-      final chip = _seatChip(context, guests[i], large: large);
+      final chip = _seatChip(
+        context,
+        guests[i],
+        large: large,
+        isHighlighted: guests[i]?.id == highlightedGuestId,
+      );
       if (chip is! SizedBox) {
         widgets.add(chip);
         if (i != guests.length - 1) {
-          widgets.add(SizedBox(width: large ? 8 : 6));
+          widgets.add(SizedBox(width: large ? 6 : 4));
         }
       }
     }
 
     return Row(
-      mainAxisSize: MainAxisSize.max,
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: widgets,
     );
@@ -751,15 +787,21 @@ class _RoomTable extends StatelessWidget {
   Widget _seatColumn(
     BuildContext context,
     List<Guest?> guests, {
+    required String highlightedGuestId,
     required bool large,
   }) {
     final widgets = <Widget>[];
     for (var i = 0; i < guests.length; i++) {
-      final chip = _seatChip(context, guests[i], large: large);
+      final chip = _seatChip(
+        context,
+        guests[i],
+        large: large,
+        isHighlighted: guests[i]?.id == highlightedGuestId,
+      );
       if (chip is! SizedBox) {
         widgets.add(chip);
         if (i != guests.length - 1) {
-          widgets.add(SizedBox(height: large ? 8 : 6));
+          widgets.add(SizedBox(height: large ? 6 : 4));
         }
       }
     }
