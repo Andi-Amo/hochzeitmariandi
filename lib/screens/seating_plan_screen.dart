@@ -734,8 +734,8 @@ class _RoomTable extends StatelessWidget {
       child: Center(
         child: Transform.rotate(
           angle: _rotationAngle,
-          child: _PulsingTableHighlight(
-            isHighlighted: isHighlighted,
+          child: Padding(
+            padding: const EdgeInsets.all(5),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -767,38 +767,41 @@ class _RoomTable extends StatelessWidget {
 
     return Transform.rotate(
       angle: -_rotationAngle,
-      child: Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSeatHighlighted
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.brown.shade100,
-          border: Border.all(
-            color: isSeatHighlighted ? Colors.amber : Colors.black54,
-            width: isSeatHighlighted ? 2 : 1,
+      child: _PulsingSeatHighlight(
+        isHighlighted: isSeatHighlighted,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isSeatHighlighted
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Colors.brown.shade100,
+            border: Border.all(
+              color: isSeatHighlighted ? Colors.amber : Colors.black54,
+              width: isSeatHighlighted ? 2 : 1,
+            ),
+            boxShadow: isSeatHighlighted
+                ? [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: isSeatHighlighted
-              ? [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _seatNameLine(guest.firstName),
-            _seatNameLine(guest.lastName),
-          ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _seatNameLine(guest.firstName),
+              _seatNameLine(guest.lastName),
+            ],
+          ),
         ),
       ),
     );
@@ -855,20 +858,20 @@ class _RoomTable extends StatelessWidget {
   }
 }
 
-class _PulsingTableHighlight extends StatefulWidget {
+class _PulsingSeatHighlight extends StatefulWidget {
   final bool isHighlighted;
   final Widget child;
 
-  const _PulsingTableHighlight({
+  const _PulsingSeatHighlight({
     required this.isHighlighted,
     required this.child,
   });
 
   @override
-  State<_PulsingTableHighlight> createState() => _PulsingTableHighlightState();
+  State<_PulsingSeatHighlight> createState() => _PulsingSeatHighlightState();
 }
 
-class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
+class _PulsingSeatHighlightState extends State<_PulsingSeatHighlight>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _pulse;
@@ -878,7 +881,7 @@ class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 900),
     );
     _pulse = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     if (widget.isHighlighted) {
@@ -887,7 +890,7 @@ class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
   }
 
   @override
-  void didUpdateWidget(covariant _PulsingTableHighlight oldWidget) {
+  void didUpdateWidget(covariant _PulsingSeatHighlight oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isHighlighted == oldWidget.isHighlighted) return;
 
@@ -909,7 +912,7 @@ class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
   @override
   Widget build(BuildContext context) {
     if (!widget.isHighlighted) {
-      return Padding(padding: const EdgeInsets.all(5), child: widget.child);
+      return widget.child;
     }
 
     return RepaintBoundary(
@@ -918,31 +921,9 @@ class _PulsingTableHighlightState extends State<_PulsingTableHighlight>
         child: widget.child,
         builder: (context, child) {
           final value = _pulse.value;
-          return Transform.scale(
-            scale: 1 + (value * 0.025),
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.08 + (value * 0.1)),
-                border: Border.all(
-                  color: Colors.amber.shade700.withValues(
-                    alpha: 0.65 + (value * 0.35),
-                  ),
-                  width: 2.5,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.amber.withValues(
-                      alpha: 0.22 + (value * 0.28),
-                    ),
-                    blurRadius: 12 + (value * 14),
-                    spreadRadius: 1 + (value * 4),
-                  ),
-                ],
-              ),
-              child: child,
-            ),
+          return Transform.translate(
+            offset: Offset(0, -4 * value),
+            child: Transform.scale(scale: 1 + (value * 0.08), child: child),
           );
         },
       ),
