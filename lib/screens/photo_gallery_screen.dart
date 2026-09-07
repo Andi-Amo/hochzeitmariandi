@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/wedding_photo.dart';
+import '../services/cloudinary_service.dart';
 import '../services/guest_session.dart';
 import '../services/photo_repository.dart';
 import '../widgets/back_button_widget.dart';
@@ -26,22 +28,44 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
 
   static const String _allPhotosFilter = '__all__';
   static const String _untaggedPhotosFilter = '__untagged__';
+  static const double _maximumUploadDimension = 2048;
 
   Future<void> _pickAndUploadFromCamera() async {
-    final file = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
-    if (file == null || !mounted) return;
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: _maximumUploadDimension,
+        maxHeight: _maximumUploadDimension,
+      );
+      if (file == null || !mounted) return;
 
-    await _uploadFiles([file]);
+      await _uploadFiles([file]);
+    } catch (error) {
+      _showSelectionError(error);
+    }
   }
 
   Future<void> _pickAndUploadFromGallery() async {
-    final files = await _picker.pickMultiImage(imageQuality: 85);
-    if (files.isEmpty || !mounted) return;
+    try {
+      final files = await _picker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: _maximumUploadDimension,
+        maxHeight: _maximumUploadDimension,
+      );
+      if (files.isEmpty || !mounted) return;
 
-    await _uploadFiles(files);
+      await _uploadFiles(files);
+    } catch (error) {
+      _showSelectionError(error);
+    }
+  }
+
+  void _showSelectionError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Fotos konnten nicht ausgewählt werden: $error')),
+    );
   }
 
   Future<void> _uploadFiles(List<XFile> files) async {
@@ -75,9 +99,9 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Hochladen: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler beim Hochladen: $e')));
       }
     } finally {
       if (mounted) {
@@ -157,8 +181,36 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
       }
     } catch (e) {
       if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler beim Speichern: $e')));
+      }
+    }
+  }
+
+  Future<void> _downloadPhoto(WeddingPhoto photo) async {
+    final downloadUrl = CloudinaryService.downloadUrl(
+      photo.url,
+      fileName: 'hochzeitsfoto_${photo.id}',
+    );
+
+    try {
+      final opened = await launchUrl(
+        Uri.parse(downloadUrl),
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank',
+      );
+      if (!opened && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Speichern: $e')),
+          const SnackBar(
+            content: Text('Das Foto konnte nicht geöffnet werden.'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Herunterladen: $error')),
         );
       }
     }
@@ -250,7 +302,8 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
                         children: [
                           ChoiceChip(
                             label: const Text('Alle'),
-                            selected: _selectedHashtagFilter == _allPhotosFilter,
+                            selected:
+                                _selectedHashtagFilter == _allPhotosFilter,
                             onSelected: (_) {
                               setState(() {
                                 _selectedHashtagFilter = _allPhotosFilter;
@@ -261,10 +314,12 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
                             ChoiceChip(
                               label: const Text('Ohne Hashtag'),
                               selected:
-                                  _selectedHashtagFilter == _untaggedPhotosFilter,
+                                  _selectedHashtagFilter ==
+                                  _untaggedPhotosFilter,
                               onSelected: (_) {
                                 setState(() {
-                                  _selectedHashtagFilter = _untaggedPhotosFilter;
+                                  _selectedHashtagFilter =
+                                      _untaggedPhotosFilter;
                                 });
                               },
                             ),
@@ -303,16 +358,49 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
                             ),
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: clusters.length,
-                          itemBuilder: (context, index) {
-                            final cluster = clusters[index];
-                            return _PhotoClusterSection(
-                              cluster: cluster,
-                              onPhotoTap: (photo) => _showFullPhoto(context, photo),
-                            );
-                          },
+                      : CustomScrollView(
+                          slivers: [
+                            for (final cluster in clusters) ...[
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  8,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: _PhotoClusterHeader(cluster: cluster),
+                                ),
+                              ),
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  0,
+                                  12,
+                                  20,
+                                ),
+                                sliver: SliverGrid(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        crossAxisSpacing: 4,
+                                        mainAxisSpacing: 4,
+                                      ),
+                                  delegate: SliverChildBuilderDelegate((
+                                    context,
+                                    index,
+                                  ) {
+                                    final photo = cluster.photos[index];
+                                    return _PhotoGridTile(
+                                      photo: photo,
+                                      onTap: () =>
+                                          _showFullPhoto(context, photo),
+                                    );
+                                  }, childCount: cluster.photos.length),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                 ),
                 Padding(
@@ -366,7 +454,16 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
           children: [
             Flexible(
               child: InteractiveViewer(
-                child: Image.network(photo.url, fit: BoxFit.contain),
+                child: Image.network(
+                  CloudinaryService.deliveryUrl(
+                    photo.url,
+                    width: 1600,
+                    height: 1600,
+                    crop: 'limit',
+                  ),
+                  fit: BoxFit.contain,
+                  errorBuilder: _buildImageError,
+                ),
               ),
             ),
             Padding(
@@ -391,6 +488,11 @@ class _PhotoGalleryScreenState extends State<PhotoGalleryScreen> {
                         ],
                       ),
                     ),
+                  FilledButton.icon(
+                    onPressed: () => _downloadPhoto(photo),
+                    icon: const Icon(Icons.download),
+                    label: const Text('Foto herunterladen'),
+                  ),
                   TextButton.icon(
                     onPressed: () {
                       Navigator.of(ctx).pop();
@@ -417,98 +519,99 @@ class _PhotoCluster {
   final String title;
   final List<WeddingPhoto> photos;
 
-  const _PhotoCluster({
-    required this.title,
-    required this.photos,
-  });
+  const _PhotoCluster({required this.title, required this.photos});
 }
 
-class _PhotoClusterSection extends StatelessWidget {
-  final _PhotoCluster cluster;
-  final ValueChanged<WeddingPhoto> onPhotoTap;
+Widget _buildImageError(
+  BuildContext context,
+  Object error,
+  StackTrace? stackTrace,
+) {
+  return const ColoredBox(
+    color: Color(0x11000000),
+    child: Center(
+      child: Icon(Icons.broken_image_outlined, color: Colors.black45),
+    ),
+  );
+}
 
-  const _PhotoClusterSection({
-    required this.cluster,
-    required this.onPhotoTap,
-  });
+class _PhotoClusterHeader extends StatelessWidget {
+  final _PhotoCluster cluster;
+
+  const _PhotoClusterHeader({required this.cluster});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Text(
-                  cluster.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+    return Row(
+      children: [
+        Text(
+          cluster.title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '(${cluster.photos.length})',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoGridTile extends StatelessWidget {
+  final WeddingPhoto photo;
+  final VoidCallback onTap;
+
+  const _PhotoGridTile({required this.photo, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              CloudinaryService.deliveryUrl(
+                photo.url,
+                width: 480,
+                height: 480,
+                crop: 'fill',
+              ),
+              fit: BoxFit.cover,
+              errorBuilder: _buildImageError,
+            ),
+            if (photo.hashtag != null)
+              Positioned(
+                left: 6,
+                bottom: 6,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      photo.hashtag!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '(${cluster.photos.length})',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-            ),
-            itemCount: cluster.photos.length,
-            itemBuilder: (context, index) {
-              final photo = cluster.photos[index];
-              return GestureDetector(
-                onTap: () => onPhotoTap(photo),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(photo.url, fit: BoxFit.cover),
-                      if (photo.hashtag != null)
-                        Positioned(
-                          left: 6,
-                          bottom: 6,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: Text(
-                                photo.hashtag!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }

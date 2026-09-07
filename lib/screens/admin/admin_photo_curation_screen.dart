@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/wedding_photo.dart';
+import '../../services/cloudinary_service.dart';
 import '../../services/photo_repository.dart';
 import '../../widgets/home_back_button.dart';
 
@@ -44,7 +45,22 @@ class AdminPhotoCurationScreen extends StatelessWidget {
                   children: [
                     Opacity(
                       opacity: photo.hidden ? 0.3 : 1,
-                      child: Image.network(photo.url, fit: BoxFit.cover),
+                      child: Image.network(
+                        CloudinaryService.deliveryUrl(
+                          photo.url,
+                          width: 480,
+                          height: 480,
+                          crop: 'fill',
+                        ),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ColoredBox(
+                              color: Color(0x11000000),
+                              child: Center(
+                                child: Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                      ),
                     ),
                     if (photo.hashtags.isNotEmpty || photo.uploaderName != null)
                       Positioned(
